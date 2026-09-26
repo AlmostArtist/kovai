@@ -1,0 +1,421 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ───────────────────────────────────────────────────────────
+   KOVAI design tokens
+   Editorial, quiet, technical. Typography carries hierarchy;
+   colour is used almost exclusively for state.
+   ─────────────────────────────────────────────────────────── */
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  --color-canvas: #f6f6f5;
+  --color-surface: #ffffff;
+  --color-elevated: #ffffff;
+  --color-subtle: #fafafa;
+  --color-line: #e9e9e6;
+  --color-line-strong: #dcdcd8;
+  --color-ink: #16161a;
+  --color-ink-muted: #6b6b73;
+  --color-ink-faint: #9b9ba3;
+  --color-accent: #5751e0;
+  --color-accent-soft: #eeedfd;
+  --color-local: #10896a;
+  --color-local-soft: #e7f4f0;
+  --color-cloud: #2f6fd0;
+  --color-cloud-soft: #e8f0fb;
+  --color-warn: #b7791f;
+  --color-danger: #c0392f;
+  --color-danger-soft: #fdecea;
+
+  /* Feature badge palette — one hue per capability */
+  --color-badge-chat: #2563eb;
+  --color-badge-chat-soft: #eff6ff;
+  --color-badge-create: #7c3aed;
+  --color-badge-create-soft: #f5f3ff;
+  --color-badge-vision: #0d9488;
+  --color-badge-vision-soft: #f0fdfa;
+  --color-badge-research: #b45309;
+  --color-badge-research-soft: #fffbeb;
+  --color-badge-workflow: #db2777;
+  --color-badge-workflow-soft: #fdf2f8;
+  --color-badge-model: #4f46e5;
+  --color-badge-model-soft: #eef2ff;
+  --color-badge-prompt: #059669;
+  --color-badge-prompt-soft: #ecfdf5;
+  --color-badge-asset: #ea580c;
+  --color-badge-asset-soft: #fff7ed;
+
+  --shadow-panel: 0 1px 2px rgba(16, 16, 20, 0.04), 0 8px 24px -12px rgba(16, 16, 20, 0.12);
+  --shadow-float: 0 1px 3px rgba(16, 16, 20, 0.06), 0 16px 48px -16px rgba(16, 16, 20, 0.22);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dark {
+  --color-canvas: #08080a;
+  --color-surface: #101012;
+  --color-elevated: #17171a;
+  --color-subtle: #0d0d0f;
+  --color-line: #232327;
+  --color-line-strong: #303037;
+  --color-ink: #f3f3f4;
+  --color-ink-muted: #9a9aa3;
+  --color-ink-faint: #67676f;
+  --color-accent: #8b87f5;
+  --color-accent-soft: #1d1b3a;
+  --color-local: #3fbe98;
+  --color-local-soft: #0f2a23;
+  --color-cloud: #6ba6f5;
+  --color-cloud-soft: #102036;
+  --color-warn: #d9a441;
+  --color-danger: #e5786c;
+  --color-danger-soft: #2b1512;
+
+  /* Feature badge palette — dark mode */
+  --color-badge-chat: #60a5fa;
+  --color-badge-chat-soft: #172554;
+  --color-badge-create: #a78bfa;
+  --color-badge-create-soft: #1e1541;
+  --color-badge-vision: #2dd4bf;
+  --color-badge-vision-soft: #0d2d2a;
+  --color-badge-research: #fbbf24;
+  --color-badge-research-soft: #2a1e06;
+  --color-badge-workflow: #f472b6;
+  --color-badge-workflow-soft: #361328;
+  --color-badge-model: #818cf8;
+  --color-badge-model-soft: #1a1744;
+  --color-badge-prompt: #34d399;
+  --color-badge-prompt-soft: #0a2e1f;
+  --color-badge-asset: #fb923c;
+  --color-badge-asset-soft: #2d1808;
+
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --shadow-float: 0 1px 3px rgba(0, 0, 0, 0.6), 0 16px 48px -16px rgba(0, 0, 0, 0.8);
+}
+
+* {
+  border-color: var(--color-line);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior: none;
+}
+
+::selection {
+  background: var(--color-accent-soft);
+  color: var(--color-ink);
+}
+
+/* Quiet scrollbars — the interface should be silent when idle. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*:hover::-webkit-scrollbar-thumb {
+  background-color: var(--color-line-strong);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Editorial prose for assistant output. Not a chat bubble. */
+@utility prose-kovai {
+  color: var(--color-ink);
+  /* Set from Settings → Customisation, with the old values as the fallback so
+     the surface still reads correctly before anything has been chosen. */
+  font-family: var(--reading-font, var(--font-sans));
+  font-size: var(--reading-size, 15.5px);
+  line-height: var(--reading-leading, 1.72);
+  letter-spacing: -0.003em;
+
+  & > * + * {
+    margin-top: 1em;
+  }
+
+  /* Headings are separated by space, not decoration. */
+  & h1,
+  & h2,
+  & h3,
+  & h4 {
+    font-weight: 600;
+    letter-spacing: -0.018em;
+    line-height: 1.32;
+    margin-top: 1.9em;
+    margin-bottom: 0.55em;
+    color: var(--color-ink);
+  }
+  & h1 {
+    font-size: 1.3em;
+  }
+  & h2 {
+    font-size: 1.14em;
+  }
+  & h3 {
+    font-size: 1.02em;
+  }
+  & > h1:first-child,
+  & > h2:first-child,
+  & > h3:first-child {
+    margin-top: 0;
+  }
+
+  & p {
+    margin: 0;
+    text-wrap: pretty;
+  }
+
+  & a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+    transition: text-decoration-color 150ms;
+  }
+  & a:hover {
+    text-decoration-color: var(--color-accent);
+  }
+
+  /*
+    Emphasis is the one place colour earns its keep in running text: it marks the
+    handful of phrases carrying the point. Kept close to the ink so a paragraph
+    with three bold phrases still reads as a paragraph, not as a warning.
+  */
+  & strong {
+    font-weight: 600;
+    color: color-mix(in srgb, var(--color-accent) 48%, var(--color-ink));
+  }
+
+  /*
+    Inside a table almost every cell is emphasised, so tinting them all turns the
+    grid into confetti and the tint stops meaning anything. Weight alone carries
+    it there.
+  */
+  & table strong,
+  & h1 strong,
+  & h2 strong,
+  & h3 strong {
+    color: inherit;
+  }
+
+  & em {
+    font-style: italic;
+    color: var(--color-ink-muted);
+  }
+
+  & mark {
+    background: color-mix(in srgb, var(--color-warn) 20%, transparent);
+    color: var(--color-ink);
+    border-radius: 4px;
+    padding: 0.05em 0.25em;
+  }
+
+  & ul,
+  & ol {
+    padding-left: 1.35em;
+  }
+  & ul {
+    list-style: disc;
+  }
+  & ol {
+    list-style: decimal;
+  }
+  & li {
+    margin: 0.35em 0;
+    padding-left: 0.15em;
+  }
+  & li::marker {
+    color: color-mix(in srgb, var(--color-accent) 55%, var(--color-ink-faint));
+  }
+  & li > ul,
+  & li > ol {
+    margin-top: 0.35em;
+  }
+
+  /* Inline code reads as a token, not as a block of source. */
+  & :not(pre) > code {
+    font-family: var(--font-mono);
+    font-size: 0.855em;
+    background: color-mix(in srgb, var(--color-accent) 9%, transparent);
+    color: color-mix(in srgb, var(--color-accent) 80%, var(--color-ink));
+    border-radius: 5px;
+    padding: 0.12em 0.36em;
+    white-space: nowrap;
+  }
+
+  & pre {
+    margin: 0;
+    background: none;
+    border: 0;
+    padding: 0;
+  }
+  & pre code {
+    font-family: var(--font-mono);
+    background: none;
+    border: 0;
+    padding: 0;
+    white-space: pre;
+  }
+
+  & hr {
+    border: 0;
+    border-top: 1px solid var(--color-line);
+  }
+}
+
+@keyframes kovai-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@utility shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-subtle) 0%,
+    var(--color-line) 40%,
+    var(--color-subtle) 80%
+  );
+  background-size: 200% 100%;
+  animation: kovai-shimmer 1.6s linear infinite;
+}
+
+@keyframes kovai-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@utility breathe {
+  animation: kovai-breathe 1.8s var(--ease-out) infinite;
+}
+
+/*
+  Navigation icons are drawn in their own colours rather than mapped onto the
+  theme, which leaves them nothing to do when the pointer arrives. In light mode
+  the surface underneath already changes and that is enough. On a dark surface it
+  is not: the artwork sits in its own pool of colour, so hovering lights it from
+  behind instead.
+
+  A drop-shadow rather than a glow box, because the halo has to follow the shape
+  of the drawing and not the square it happens to occupy.
+*/
+@utility icon-glow {
+  transition: filter 160ms var(--ease-out);
+}
+
+.dark {
+  & .icon-glow:hover,
+  & .group:hover .icon-glow,
+  & [data-state='open'] .icon-glow {
+    filter: drop-shadow(0 0 5px color-mix(in srgb, var(--color-ink) 42%, transparent))
+      drop-shadow(0 0 12px color-mix(in srgb, var(--color-ink) 18%, transparent));
+  }
+}
+
+/* Focus rings: present, never loud. */
+@utility ring-kovai {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--color-surface), 0 0 0 3px color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+
+[data-drag-active='true'] {
+  outline: 2px dashed color-mix(in srgb, var(--color-accent) 45%, transparent);
+  outline-offset: -8px;
+}
+
+/*
+  The control island.
+
+  A capsule fused to the right edge of the window. Its silhouette is the pill
+  plus two concave fillets that flare into the edge above and below it, so the
+  shape reads as part of the frame rather than as a panel parked against it.
+
+  Each fillet is a square sitting flush to the edge with a quarter-disc cut out
+  of its far corner: what is left is the curve. The cut is made from the same
+  fill the capsule uses, which is why that fill is a variable rather than a
+  literal — the two halves of the silhouette must never disagree.
+
+  The capsule is always dark, in both themes, the way the thing it is named for
+  is. What changes is how far it stands off its background: nearly black on a
+  light canvas, a step lighter than the canvas on a dark one, because a black
+  panel on a black page is a panel nobody can see.
+*/
+:root {
+  --island-fill: #0d0d10;
+}
+
+.dark {
+  --island-fill: #202027;
+}
+
+.island-shell {
+  background: var(--island-fill);
+  /* The fillets are drawn outside the box and must not be clipped away. */
+  overflow: visible;
+}
+
+.island-fillet {
+  position: absolute;
+  right: 0;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+}
+
+.island-fillet-top {
+  top: -22px;
+  background: radial-gradient(circle 22px at top left, transparent 21.3px, var(--island-fill) 21.9px);
+}
+
+.island-fillet-bottom {
+  bottom: -22px;
+  background: radial-gradient(circle 22px at bottom left, transparent 21.3px, var(--island-fill) 21.9px);
+}

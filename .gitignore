@@ -1,0 +1,51 @@
+node_modules/
+.next/
+out/
+build/
+.DS_Store
+
+# secrets — never commit.
+# The last two catch mistyped names such as ".env. local." which the exact
+# patterns miss — a secrets file with a typo is still a secrets file.
+.env
+.env.local
+.env*.local
+.env*
+*.env
+
+# …with one deliberate exception: the template, which has no values in it and
+# is the file people copy to make their own.
+!.env.example
+
+# local data store + runtime artifacts
+# Everything a person's own copy accumulates: their conversations, notes,
+# projects, agents, uploads and generated images. None of it is source.
+.kovai/
+.kora/
+*.log
+runtime/.venv/
+runtime/__pycache__/
+**/__pycache__/
+*.pyc
+
+# tauri
+src-tauri/target/
+
+*.tsbuildinfo
+next-env.d.ts
+
+# local model weights — gigabytes of binary, never committed. The folder
+# itself ships (with its README) so there is somewhere obvious to drop a file.
+models/*
+!models/README.md
+!models/.gitkeep
+
+# editors / OS
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+
+# scratch
+probe.png
+*.tsbuildinfo

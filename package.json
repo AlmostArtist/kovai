@@ -1,0 +1,71 @@
+{
+  "name": "kovai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "KOVAI \u2014 a local-first creative intelligence workspace. Every model, one surface.",
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "node scripts/dev.mjs",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "runtime": "bash scripts/start-local.sh",
+    "tauri": "tauri",
+    "dev:web": "next dev",
+    "doctor": "node scripts/doctor.mjs",
+    "sync:higgsfield": "node scripts/sync-higgsfield.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@prisma/client": "^6.2.1",
+    "@radix-ui/react-dialog": "^1.1.4",
+    "@radix-ui/react-dropdown-menu": "^2.1.4",
+    "@radix-ui/react-label": "^2.1.1",
+    "@radix-ui/react-popover": "^1.1.4",
+    "@radix-ui/react-scroll-area": "^1.2.2",
+    "@radix-ui/react-select": "^2.1.4",
+    "@radix-ui/react-separator": "^1.1.1",
+    "@radix-ui/react-slider": "^1.2.2",
+    "@radix-ui/react-slot": "^1.1.1",
+    "@radix-ui/react-switch": "^1.1.2",
+    "@radix-ui/react-tabs": "^1.1.2",
+    "@radix-ui/react-tooltip": "^1.1.6",
+    "@tanstack/react-query": "^5.64.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.0.4",
+    "framer-motion": "^12.0.0",
+    "lottie-react": "^3.1.2",
+    "lucide-react": "^0.469.0",
+    "nanoid": "^5.0.9",
+    "next": "15.1.6",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-markdown": "^9.0.3",
+    "remark-gfm": "^4.0.0",
+    "sonner": "^1.7.2",
+    "tailwind-merge": "^2.6.0",
+    "zod": "^3.24.1",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^22.10.7",
+    "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.0.3",
+    "prisma": "^6.2.1",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.3"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kishorekrazzy/kovai.git"
+  }
+}

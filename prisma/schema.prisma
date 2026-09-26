@@ -1,0 +1,422 @@
+// KOVAI — relational schema.
+//
+// Postgres is optional. With DATABASE_URL unset, KOVAI persists to .kovai/data.json
+// through the same KovaiStore interface, so the product runs with no setup.
+//
+//   npx prisma db push   # create/update the schema
+//   npx prisma generate  # regenerate the client
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String?  @unique
+  displayName String
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+
+  projects      Project[]
+  workspaces    Workspace[]
+  settings      Setting[]
+  usageRecords  UsageRecord[]
+  conversations Conversation[]
+  assets        Asset[]
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  color       String?
+  pinned      Boolean  @default(false)
+  /// Brand information, creative direction, instructions and prompt presets.
+  context     Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  conversations Conversation[]
+  assets        Asset[]
+  generations   Generation[]
+  prompts       Prompt[]
+  notes         Note[]
+  tasks         Task[]
+  agents        Agent[]
+  workflows     Workflow[]
+  usageRecords  UsageRecord[]
+
+  @@index([userId, updatedAt])
+}
+
+/// A window of work. Each workspace owns an ordered set of tabs.
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String   @default("Workspace")
+  activeTab String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tabs   Tab[]
+}
+
+/// One independent, state-preserving surface: a chat, a canvas, a workflow.
+model Tab {
+  id       String  @id @default(cuid())
+  kind     String
+  title    String
+  icon     String?
+  pinned   Boolean @default(false)
+  position Int     @default(0)
+  /// Serialized tab state so a session can be restored exactly.
+  state    Json    @default("{}")
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workspaceId, position])
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  messages Message[]
+  tabs     Tab[]
+
+  @@index([projectId, updatedAt])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  role      String
+  content   String   @db.Text
+  /// Collapsed reasoning trace, when the model emits one.
+  reasoning String?  @db.Text
+  /// [{ url, mimeType, name }]
+  attachments Json   @default("[]")
+
+  providerId   String?
+  model        String?
+  inputTokens  Int?
+  outputTokens Int?
+  costUsd      Float?
+  error        Json?
+
+  createdAt DateTime @default(now())
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+model Asset {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  kind         String
+  url          String   @db.Text
+  thumbnailUrl String?  @db.Text
+  origin       String
+  providerId   String?
+  model        String?
+  favorite     Boolean  @default(false)
+  width        Int?
+  height       Int?
+  sizeBytes    Int?
+  mimeType     String?
+  /// Prompt, params, seed and cost — everything needed to reproduce it.
+  generation   Json?
+  createdAt    DateTime @default(now())
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  generationJobId String?
+  generationJob   Generation? @relation(fields: [generationJobId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt])
+  @@index([origin, createdAt])
+}
+
+/// An asynchronous generation. Survives tab switches, reloads and restarts.
+model Generation {
+  id         String    @id @default(cuid())
+  providerId String
+  externalId String?
+  model      String
+  kind       String
+  status     String
+  phase      String    @default("PREPARING")
+  progress   Int       @default(0)
+  prompt     String    @db.Text
+  params     Json      @default("{}")
+  referenceImages Json @default("[]")
+  outputs    Json      @default("[]")
+  error      Json?
+  costUsd    Float?
+  tabId      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  completedAt DateTime?
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  assets Asset[]
+
+  @@index([status, createdAt])
+  @@index([projectId, createdAt])
+}
+
+model Prompt {
+  id        String   @id @default(cuid())
+  title     String
+  body      String   @db.Text
+  tags      String[] @default([])
+  favorite  Boolean  @default(false)
+  useCount  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+}
+
+/// A model plus standing instructions, allowed tools, and hard limits.
+/// A K Skill: SKILL.md frontmatter plus its body, loaded on demand.
+model Skill {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  description  String   @db.Text
+  instructions String   @db.Text
+  /// Bundled files, read only when the instructions reference one.
+  resources    Json     @default("[]")
+  enabled      Boolean  @default(true)
+  origin       String   @default("imported")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Agent {
+  id           String   @id @default(cuid())
+  name         String
+  avatar       String?
+  description  String?
+  /// What it is for — shown in the list and told to the agent.
+  role         String?
+  /// How it talks: the voice that makes two agents on one model feel different.
+  character    String?  @db.Text
+  /// Docked as a companion, where it can speak unprompted.
+  companion    Boolean  @default(false)
+  /// Where on screen it lives: right, left, composer, hanging, corner.
+  placement    String   @default("right")
+  instructions String   @db.Text
+  providerId   String
+  modelId      String
+  temperature  Float?
+  maxTokens    Int?
+  /// Ceiling on tool-call rounds, so a run cannot loop indefinitely.
+  maxSteps     Int      @default(6)
+  /// Namespaced MCP tool ids this agent may call.
+  toolIds      String[] @default([])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  runs      AgentRun[]
+  memories  AgentMemory[]
+}
+
+/// What an agent keeps: both halves of every companion exchange, plus notes.
+model AgentMemory {
+  id        String   @id @default(cuid())
+  /// "message" for a turn of conversation, "note" for something to remember.
+  kind      String   @default("message")
+  role      String?
+  content   String   @db.Text
+  /// What the user was doing when this was said.
+  context   String?
+  createdAt DateTime @default(now())
+
+  agentId String
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId, createdAt])
+}
+
+model AgentRun {
+  id           String    @id @default(cuid())
+  agentName    String
+  input        String    @db.Text
+  status       String
+  /// Per-step trace: thinking, tool calls, the answer.
+  steps        Json      @default("[]")
+  output       String?   @db.Text
+  error        String?
+  inputTokens  Int?
+  outputTokens Int?
+  costUsd      Float?
+  startedAt    DateTime  @default(now())
+  endedAt      DateTime?
+
+  agentId String
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId, startedAt])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  title     String
+  body      String   @db.Text
+  color     String?
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([pinned, updatedAt])
+}
+
+/// A task, and a reminder when it carries a due date — one thing, so a due
+/// item can be completed rather than only dismissed.
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  notes       String?   @db.Text
+  done        Boolean   @default(false)
+  dueAt       DateTime?
+  priority    String    @default("normal")
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([done, dueAt])
+}
+
+model Workflow {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  pinned      Boolean  @default(false)
+  nodes       Json     @default("[]")
+  edges       Json     @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  runs      WorkflowRun[]
+}
+
+model WorkflowRun {
+  id        String    @id @default(cuid())
+  status    String
+  /// Per-node status, output and timing.
+  steps     Json      @default("[]")
+  error     String?
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId, startedAt])
+}
+
+/// Cached provider catalogue. Never the source of truth — refreshed from the
+/// provider so newly released models appear without a code change.
+model Model {
+  id           String   @id
+  providerId   String
+  name         String
+  capabilities String[] @default([])
+  contextLength Int?
+  description  String?  @db.Text
+  pricing      Json?
+  params       Json?
+  tags         String[] @default([])
+  favorite     Boolean  @default(false)
+  isDefault    Boolean  @default(false)
+  refreshedAt  DateTime @default(now())
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId])
+}
+
+/// Connection state only. Secrets live in the environment, never in the database.
+model Provider {
+  id           String   @id
+  name         String
+  kind         String
+  capabilities String[] @default([])
+  enabled      Boolean  @default(true)
+  lastStatus   String?
+  lastCheckedAt DateTime?
+
+  models Model[]
+}
+
+model UsageRecord {
+  id           String   @id @default(cuid())
+  providerId   String
+  model        String
+  kind         String
+  inputTokens  Int?
+  outputTokens Int?
+  images       Int?
+  /// Only set when the provider actually reported a cost.
+  costUsd      Float?
+  costUnknown  Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([providerId, createdAt])
+}
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
