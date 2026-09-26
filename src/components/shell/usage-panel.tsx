@@ -100,7 +100,7 @@ export function UsagePanel() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 12 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed right-4 top-[62px] z-50 w-[340px] overflow-hidden rounded-[14px] border border-line bg-elevated shadow-float"
+            className="pb-safe fixed inset-x-2 bottom-2 z-50 max-h-[80svh] overflow-y-auto rounded-[14px] border border-line bg-elevated shadow-float sm:inset-x-auto sm:bottom-auto sm:right-4 sm:top-[62px] sm:w-[340px]"
           >
             <div className="flex items-center gap-2 border-b border-line px-4 py-3">
               <p className="text-[13.5px] font-medium">Usage</p>

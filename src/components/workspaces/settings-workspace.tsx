@@ -96,13 +96,21 @@ export function SettingsWorkspace({ tab }: { tab: Tab }) {
   const current = SECTIONS.find((s) => s.value === section)!
 
   return (
-    <div className="flex h-full">
-      <aside className="flex w-[228px] shrink-0 flex-col border-r border-line bg-surface">
-        <div className="px-4 pb-2 pt-5">
+    /*
+      A rail beside the content on a desktop; a strip of tabs above it on a
+      phone. The rail cannot simply narrow — at 390px a 228px column and the
+      settings it points at would each get half a screen, and neither would be
+      usable. So below `md` it turns on its side: same entries, same order,
+      scrolling horizontally, with the explanatory line dropped because a tab
+      row is read at a glance rather than studied.
+    */
+    <div className="flex h-full flex-col md:flex-row">
+      <aside className="flex shrink-0 flex-col border-b border-line bg-surface md:w-[228px] md:border-b-0 md:border-r">
+        <div className="hidden px-4 pb-2 pt-5 md:block">
           <p className="text-[15px] font-medium tracking-[-0.015em] text-ink">Settings</p>
         </div>
 
-        <nav className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+        <nav className="flex min-h-0 flex-row gap-1 overflow-x-auto px-2 py-2 no-scrollbar md:flex-1 md:flex-col md:gap-0 md:overflow-x-visible md:overflow-y-auto md:py-0 md:pb-4">
           {SECTIONS.map((entry) => {
             const Icon = entry.icon
             const active = section === entry.value
@@ -111,21 +119,21 @@ export function SettingsWorkspace({ tab }: { tab: Tab }) {
                 key={entry.value}
                 onClick={() => setSection(entry.value)}
                 className={cn(
-                  'flex w-full items-start gap-2.5 rounded-[9px] px-2 py-2 text-left transition-colors',
+                  'flex shrink-0 items-center gap-2 rounded-[9px] px-3 py-2 text-left transition-colors md:w-full md:items-start md:gap-2.5 md:px-2',
                   active ? 'bg-subtle' : 'hover:bg-subtle',
                 )}
               >
                 <Icon
                   className={cn(
-                    'mt-[2px] h-[14px] w-[14px] shrink-0',
+                    'h-[14px] w-[14px] shrink-0 md:mt-[2px]',
                     active ? 'text-accent' : 'text-ink-faint',
                   )}
                 />
                 <span className="min-w-0">
-                  <span className={cn('block text-[13px]', active ? 'text-ink' : 'text-ink-muted')}>
+                  <span className={cn('block whitespace-nowrap text-[13px] md:whitespace-normal', active ? 'text-ink' : 'text-ink-muted')}>
                     {entry.label}
                   </span>
-                  <span className="mt-0.5 block text-[11px] leading-[1.35] text-ink-faint">
+                  <span className="mt-0.5 hidden text-[11px] leading-[1.35] text-ink-faint md:block">
                     {entry.line}
                   </span>
                 </span>
@@ -136,7 +144,7 @@ export function SettingsWorkspace({ tab }: { tab: Tab }) {
       </aside>
 
       <div className="min-w-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[680px] px-8 py-7">
+        <div className="pb-safe mx-auto max-w-[680px] px-4 py-5 md:px-8 md:py-7">
           <header className="mb-6">
             <h1 className="text-[21px] font-medium tracking-[-0.022em] text-ink">{current.label}</h1>
             <p className="mt-1 text-[13px] text-ink-muted">{current.line}</p>
@@ -393,7 +401,7 @@ function Panel({
   action?: React.ReactNode
 }) {
   return (
-    <section className="rounded-[12px] border border-line bg-surface p-4">
+    <section className="rounded-[12px] border border-line bg-surface p-3.5 md:p-4">
       <div className="mb-3 flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-medium text-ink">{title}</p>
@@ -409,8 +417,13 @@ function Panel({
 /** A label in a fixed column, so every control in a panel lines up. */
 function Setting({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-3">
-      <span className="w-[82px] shrink-0 text-[12.5px] text-ink-muted">{label}</span>
+    /*
+      Label beside the control, until there is not room — then above it. A
+      fixed 82px column plus a segmented control with four options overflows a
+      390px screen, and the control is the part that has to stay whole.
+    */
+    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+      <span className="shrink-0 text-[12.5px] text-ink-muted sm:w-[82px]">{label}</span>
       {children}
     </div>
   )
@@ -543,7 +556,7 @@ function CustomisationSection() {
         />
 
         <div className="space-y-2.5">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             <WallpaperTile
               label="Scene"
               preview="/backdrops/home-light.webp"

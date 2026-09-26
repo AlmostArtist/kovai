@@ -67,7 +67,7 @@ export function AlbumWorkspace({ tab }: { tab: Tab }) {
         }
         actions={
           <>
-            <div className="relative w-[240px]">
+            <div className="relative w-full sm:w-[240px]">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-[13px] w-[13px] -translate-y-1/2 text-ink-faint" />
               <Input
                 value={query}

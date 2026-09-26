@@ -84,7 +84,7 @@ export function ModelsWorkspace(_props: { tab: Tab }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Filter models"
-              className="w-[200px]"
+              className="w-full sm:w-[200px]"
             />
             <Button variant="secondary" size="sm" onClick={() => void refetch()}>
               <RefreshCw className="h-3.5 w-3.5" />

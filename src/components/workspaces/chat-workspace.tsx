@@ -281,7 +281,7 @@ export function ChatWorkspace({ tab, mode = 'chat' }: { tab: Tab; mode?: 'chat' 
         }}
         className="relative min-h-0 flex-1 overflow-y-auto"
       >
-        <div className="mx-auto max-w-[760px] px-8 pb-8 pt-6">
+        <div className="mx-auto max-w-[760px] px-4 pb-6 pt-4 md:px-8 md:pb-8 md:pt-6">
           {messages.length === 0 ? (
             <div className="flex min-h-[46vh] items-center justify-center">
               <EmptyState
@@ -321,7 +321,7 @@ export function ChatWorkspace({ tab, mode = 'chat' }: { tab: Tab; mode?: 'chat' 
         </div>
       </div>
 
-      <div className="relative shrink-0 px-8 pb-6">
+      <div className="pb-safe relative shrink-0 px-3 pb-3 md:px-8 md:pb-6">
         <div className="mx-auto max-w-[760px]">
           {!route.ok && (
             <ErrorState

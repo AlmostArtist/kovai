@@ -95,7 +95,7 @@ export function HistoryWorkspace({ tab }: { tab: Tab }) {
             : `${data?.total ?? 0} conversation${data?.total === 1 ? '' : 's'} kept`
         }
         actions={
-          <div className="relative w-[260px]">
+          <div className="relative w-full sm:w-[260px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-[13px] w-[13px] -translate-y-1/2 text-ink-faint" />
             <Input
               value={query}

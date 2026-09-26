@@ -18,6 +18,7 @@ import { useCompanions } from '@/store/companions'
 import { useWorkspace } from '@/store/workspace'
 import { useSettings } from '@/store/settings'
 import { useUI } from '@/store/ui'
+import { useIsMobile } from '@/hooks/use-viewport'
 import { cn } from '@/lib/utils'
 import type { Agent, AgentMemory, AgentPlacement } from '@/lib/db/types'
 
@@ -115,6 +116,7 @@ export function CompanionRail() {
   const [thought, setThought] = useState<{ agentId: string; text: string } | null>(null)
   const pointer = usePointerY()
   const composer = useComposerBox()
+  const mobile = useIsMobile()
 
   useIdleRemarks({
     companions,
@@ -133,16 +135,24 @@ export function CompanionRail() {
 
   if (!companions.length) return null
 
+  // On a phone the placements stop meaning anything: there is no pointer to
+  // drift towards, the prompt bar is the width of the screen, and a face
+  // hanging from the top lands on the header. So everyone parks in the corner —
+  // the one placement designed to stay out of the way — and only the first two
+  // come out, because a 390px screen has room for company, not a crowd.
+  const out = mobile ? companions.slice(0, 2) : companions
+
   return (
     <>
       {/* Each agent is positioned by its own placement, so they are siblings of
           the overlay rather than children of a rail. */}
-      {companions.map((agent, index) => (
+      {out.map((agent, index) => (
         <FloatingAgent
           key={agent.id}
           agent={agent}
-          index={placementIndex(companions, index)}
-          count={placementCount(companions, agent)}
+          placement={mobile ? 'corner' : undefined}
+          index={mobile ? index : placementIndex(companions, index)}
+          count={mobile ? out.length : placementCount(companions, agent)}
           pointer={pointer}
           composer={composer}
           awake={agent.id === awakeId}
@@ -269,6 +279,7 @@ function useComposerBox() {
  */
 function FloatingAgent({
   agent,
+  placement: forced,
   index,
   count,
   pointer,
@@ -279,6 +290,8 @@ function FloatingAgent({
   onDismiss,
 }: {
   agent: Agent
+  /** Overrides the agent's own choice, for screens where it cannot apply. */
+  placement?: AgentPlacement
   index: number
   count: number
   pointer: MotionValue<number>
@@ -289,7 +302,7 @@ function FloatingAgent({
   onDismiss: () => void
 }) {
   const reduced = useReducedMotion()
-  const placement = agent.placement ?? 'right'
+  const placement = forced ?? agent.placement ?? 'right'
   const edge = placement === 'left' ? 'left' : 'right'
   const islandOpen = useUI((s) => s.islandOpen)
 
@@ -398,10 +411,19 @@ function FloatingAgent({
 
   // ── Parked in a corner.
   if (placement === 'corner') {
+    // A fixed offset from the bottom is fine beside a desktop composer and
+    // lands squarely on top of a phone one, which is full width and taller.
+    // Where the composer's position is known, park on its shoulder instead.
+    const aboveComposer = composer ? { top: composer.top - 46 - index * 46 } : undefined
+
     return (
       <motion.div
-        className={cn('pointer-events-none fixed bottom-[76px] z-40', edge === 'left' ? 'left-4' : 'right-4')}
-        style={{ marginBottom: index * 52 }}
+        className={cn(
+          'pointer-events-none fixed z-40',
+          edge === 'left' ? 'left-4' : 'right-4',
+          !aboveComposer && 'bottom-[76px]',
+        )}
+        style={aboveComposer ?? { marginBottom: index * 52 }}
         animate={reduced ? undefined : { y: [0, -5, 0] }}
         transition={{ duration: 4.5 + index, repeat: Infinity, ease: 'easeInOut' }}
       >
@@ -661,7 +683,7 @@ function CompanionPanel({
       animate={{ opacity: 1, x: 0, scale: 1 }}
       exit={{ opacity: 0, x: 16, scale: 0.98 }}
       transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-      className="fixed bottom-6 right-[68px] z-40 flex max-h-[min(520px,70vh)] w-[330px] flex-col overflow-hidden rounded-[16px] border border-line bg-elevated shadow-float"
+      className="pb-safe fixed inset-x-2 bottom-2 z-40 flex max-h-[min(520px,70svh)] flex-col overflow-hidden rounded-[16px] border border-line bg-elevated shadow-float sm:inset-x-auto sm:bottom-6 sm:right-[68px] sm:w-[330px]"
     >
       <header className="flex shrink-0 items-center gap-2.5 border-b border-line px-3.5 py-2.5">
         <AgentAvatar avatar={agent.avatar} name={agent.name} className="h-[26px] w-[26px] text-[14px]" />

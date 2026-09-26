@@ -27,6 +27,7 @@ import { useCompanions } from '@/store/companions'
 import { useSettings } from '@/store/settings'
 import { useUI } from '@/store/ui'
 import { useWorkspace } from '@/store/workspace'
+import { useIsTouch } from '@/hooks/use-viewport'
 import { cn, formatBytes, modKey } from '@/lib/utils'
 import type { Agent } from '@/lib/db/types'
 
@@ -141,6 +142,7 @@ export function DynamicIsland() {
   const wake = useCompanions((s) => s.wake)
   const toggleCompanion = useCompanions((s) => s.toggle)
 
+  const touch = useIsTouch()
   const { snapshot } = useLocalRuntime({ poll: true })
   const jobs = useJobs((s) => s.jobs)
 
@@ -322,7 +324,10 @@ export function DynamicIsland() {
     [activeIds, agents],
   )
 
-  if (!roomy) return null
+  // A proximity affordance needs a pointer to be near. On a touch screen there
+  // is nothing to be near with, so the island simply is not there — its
+  // contents all live somewhere reachable by tapping.
+  if (!roomy || touch) return null
 
   const dark = theme === 'dark'
   const privateMode = privacy === 'PRIVATE'

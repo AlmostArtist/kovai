@@ -24,13 +24,28 @@ const button = cva(
         accent: 'bg-accent text-white hover:opacity-90',
         danger: 'text-danger hover:bg-danger-soft',
       },
+      /*
+        Every size is a step taller below `md`, and exactly itself above it.
+
+        A 28px control is comfortable under a cursor, which lands on a single
+        pixel, and awkward under a fingertip, which covers about nine
+        millimetres. Rather than redraw the buttons for phones — which would
+        change the design — each one keeps its proportions and gains the height
+        a finger needs, on the screens where a finger is what is being used.
+
+        Width alone is not the test. A touch tablet is 768px wide and cannot
+        hover; a small window on a desktop is 700px wide and can. So the bump
+        applies below `md` *or* wherever the pointer is coarse, and a mouse on
+        a narrow window keeps the compact controls it can hit.
+      */
       size: {
-        xs: 'h-7 px-2.5 text-[12px] rounded-[7px]',
-        sm: 'h-8 px-3 text-[13px] rounded-[8px]',
-        md: 'h-9 px-3.5 text-[13.5px] rounded-[9px]',
+        xs: 'h-8 px-2.5 text-[12px] rounded-[7px] md:h-7 [@media(pointer:coarse)]:h-8',
+        sm: 'h-9 px-3 text-[13px] rounded-[8px] md:h-8 [@media(pointer:coarse)]:h-9',
+        md: 'h-10 px-3.5 text-[13.5px] rounded-[9px] md:h-9 [@media(pointer:coarse)]:h-10',
         lg: 'h-11 px-5 text-[14.5px] rounded-[11px]',
-        icon: 'h-8 w-8 rounded-[8px]',
-        'icon-sm': 'h-7 w-7 rounded-[7px]',
+        icon: 'h-9 w-9 rounded-[8px] md:h-8 md:w-8 [@media(pointer:coarse)]:h-9 [@media(pointer:coarse)]:w-9',
+        'icon-sm':
+          'h-8 w-8 rounded-[7px] md:h-7 md:w-7 [@media(pointer:coarse)]:h-8 [@media(pointer:coarse)]:w-8',
       },
     },
     defaultVariants: { variant: 'secondary', size: 'sm' },
@@ -261,9 +276,16 @@ export function DialogContent({
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 dark:bg-black/50" />
       <DialogPrimitive.Content
         className={cn(
-          'fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2',
-          'rounded-[14px] border border-line bg-elevated shadow-float',
-          'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-[0.98]',
+          // A sheet on a phone, a centred card everywhere else. A dialog
+          // pinned to the middle of a 390px screen has the on-screen keyboard
+          // underneath it and nowhere to grow; anchored to the bottom it can
+          // use the whole width and stays where the thumb already is.
+          'fixed z-50 border-line bg-elevated shadow-float',
+          'inset-x-0 bottom-0 max-h-[92svh] overflow-y-auto rounded-t-[18px] border-t pb-safe',
+          'sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:max-h-[88svh] sm:w-[calc(100vw-2rem)]',
+          'sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[14px] sm:border',
+          'data-[state=open]:animate-in data-[state=open]:fade-in-0',
+          'data-[state=open]:slide-in-from-bottom-4 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=open]:zoom-in-[0.98]',
           widths[width],
           className,
         )}

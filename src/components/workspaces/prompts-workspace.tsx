@@ -69,7 +69,7 @@ export function PromptsWorkspace(_props: { tab: Tab }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search prompts"
-              className="w-[200px]"
+              className="w-full sm:w-[200px]"
             />
             <Button variant="primary" size="sm" onClick={() => open()}>
               <Plus className="h-3.5 w-3.5" />

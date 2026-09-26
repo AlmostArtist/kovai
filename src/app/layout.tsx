@@ -15,7 +15,12 @@ export const viewport: Viewport = {
   ],
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
+  // Pinch-zoom is left alone. Capping it stops a double-tap zooming the page
+  // on iOS, but it also stops anyone who needs to magnify text from doing so,
+  // and that is not a trade the layout is entitled to make. Inputs are sized
+  // at 16px on small screens instead, which is what actually causes the
+  // unwanted zoom-on-focus.
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

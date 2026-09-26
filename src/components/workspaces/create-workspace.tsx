@@ -62,6 +62,11 @@ export function CreateWorkspace({ tab }: { tab: Tab }) {
   const openTab = useWorkspace((s) => s.openTab)
   const patch = useCallback((next: Partial<CreateState>) => patchState(tab.id, next), [patchState, tab.id])
 
+  // Which of the three the phone is showing. Local rather than tab state: it
+  // describes the size of the window, not the work, and restoring "you were
+  // looking at the canvas" on a desktop that shows all three is meaningless.
+  const [view, setView] = useState<'prompt' | 'canvas' | 'panel'>('prompt')
+
   const prompt = state.prompt ?? ''
   const params = state.params ?? {}
   const references = state.references ?? []
@@ -125,9 +130,34 @@ export function CreateWorkspace({ tab }: { tab: Tab }) {
   })
 
   return (
-    <div className="flex h-full">
+    /*
+      Three columns on a desktop — write, look, adjust — and on a phone the
+      same three as one screen at a time. They are not stacked: a prompt box
+      above a canvas above a settings panel would put the generate button a
+      scroll away from the image it produces, which is the one relationship
+      this workspace is built around.
+    */
+    <div className="flex h-full flex-col md:flex-row">
+      <div className="flex shrink-0 border-b border-line bg-surface p-1.5 md:hidden">
+        <Segmented
+          className="w-full"
+          value={view}
+          onChange={setView}
+          options={[
+            { value: 'prompt', label: 'Prompt' },
+            { value: 'canvas', label: 'Canvas' },
+            { value: 'panel', label: 'Adjust' },
+          ]}
+        />
+      </div>
+
       {/* Prompt column */}
-      <div className="flex w-[336px] shrink-0 flex-col border-r border-line bg-surface">
+      <div
+        className={cn(
+          'flex min-h-0 flex-col border-line bg-surface md:w-[336px] md:shrink-0 md:border-r',
+          view === 'prompt' ? 'flex-1 md:flex-none' : 'hidden md:flex',
+        )}
+      >
         <div className="flex h-[46px] shrink-0 items-center gap-2 border-b border-line px-4">
           <Sparkles className="h-[14px] w-[14px] text-ink-faint" />
           <span className="text-[13px] font-medium">Create</span>
@@ -200,7 +230,14 @@ export function CreateWorkspace({ tab }: { tab: Tab }) {
               size="lg"
               className="w-full"
               disabled={!model || !prompt.trim() || submitting}
-              onClick={() => void run()}
+              onClick={() => {
+                // A phone only shows one of the three, so starting a
+                // generation from the prompt view has to move you to the one
+                // the picture will arrive on. Otherwise the button appears to
+                // do nothing at all.
+                setView('canvas')
+                void run()
+              }}
             >
               {submitting ? 'Starting…' : 'Generate'}
               <span className="ml-1 text-[11px] opacity-60">{modKey()}↵</span>
@@ -210,7 +247,12 @@ export function CreateWorkspace({ tab }: { tab: Tab }) {
       </div>
 
       {/* Canvas */}
-      <div className="min-w-0 flex-1 overflow-y-auto bg-canvas">
+      <div
+        className={cn(
+          'min-w-0 flex-1 overflow-y-auto bg-canvas',
+          view === 'canvas' ? '' : 'hidden md:block',
+        )}
+      >
         <Canvas
           job={selectedJob}
           hasProvider={models.length > 0}
@@ -220,7 +262,12 @@ export function CreateWorkspace({ tab }: { tab: Tab }) {
       </div>
 
       {/* Settings / history */}
-      <div className="flex w-[300px] shrink-0 flex-col border-l border-line bg-surface">
+      <div
+        className={cn(
+          'flex min-h-0 flex-col border-line bg-surface md:w-[300px] md:shrink-0 md:border-l',
+          view === 'panel' ? 'flex-1 md:flex-none' : 'hidden md:flex',
+        )}
+      >
         <div className="flex h-[46px] shrink-0 items-center px-3">
           <Segmented
             size="sm"
@@ -441,7 +488,7 @@ function Canvas({
 
   if (running) {
     return (
-      <div className="flex h-full flex-col items-center justify-center px-8">
+      <div className="flex h-full flex-col items-center justify-center px-5 md:px-8">
         <div className="w-full max-w-[520px]">
           <div className="aspect-[16/10] w-full rounded-[14px] border border-line shimmer" />
           <div className="mt-5 flex items-center gap-3">
@@ -461,7 +508,7 @@ function Canvas({
 
   if (job.status === 'FAILED' && job.error) {
     return (
-      <div className="flex h-full items-center justify-center px-8">
+      <div className="flex h-full items-center justify-center px-5 md:px-8">
         <ErrorState error={job.error} className="w-full max-w-[460px]" />
       </div>
     )
@@ -490,7 +537,7 @@ function Canvas({
       initial={{ opacity: 0, scale: 0.99 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-      className="mx-auto flex h-full max-w-[880px] flex-col px-8 py-7"
+      className="pb-safe mx-auto flex h-full max-w-[880px] flex-col px-4 py-5 md:px-8 md:py-7"
     >
       <div className="flex min-h-0 flex-1 items-center justify-center">
         {output.type === 'video' ? (

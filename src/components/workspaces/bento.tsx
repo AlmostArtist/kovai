@@ -400,7 +400,7 @@ export function WorkTile({ className }: { className?: string }) {
   return (
     <BentoCard title="Your work" icon={FolderOpen} className={className}>
       {generations.length > 0 && (
-        <div className="grid grid-cols-4 gap-1.5 px-2 pb-2">
+        <div className="grid grid-cols-2 gap-1.5 px-2 pb-2 sm:grid-cols-4">
           {generations.map((job) => (
             <button
               key={job.id}

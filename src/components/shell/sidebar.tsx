@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   Bot,
   Boxes,
@@ -27,6 +27,7 @@ import { PrivacyToggle } from './privacy-toggle'
 import { UsageButton } from './usage-panel'
 import { useWorkspace, type TabKind } from '@/store/workspace'
 import { useSettings } from '@/store/settings'
+import { useIsMobile, useIsNarrow } from '@/hooks/use-viewport'
 import { useUI } from '@/store/ui'
 import { cn, modKey, relativeTime } from '@/lib/utils'
 import { KovaiMark } from './kovai-mark'
@@ -55,30 +56,20 @@ const LIBRARY: { kind: TabKind; label: string; icon: React.ComponentType<{ class
 ]
 
 /**
- * Collapses the sidebar when the window is too narrow to afford it.
+ * The navigation.
  *
- * Below this width a 248px rail leaves the workspace with less room than the
- * rail itself. The stored preference is left untouched — this is a temporary
- * override for the viewport, so widening the window restores what you chose.
+ * A column on a desktop and a drawer on a phone — the same component either
+ * way, because the contents are identical and only their container changes.
+ * On a phone it is never the icon-only form: a drawer that costs a tap to open
+ * has no reason to then hide its own labels.
  */
-function useNarrowViewport(threshold = 1024): boolean {
-  const [narrow, setNarrow] = useState(false)
-
-  useEffect(() => {
-    const media = window.matchMedia(`(max-width: ${threshold - 1}px)`)
-    const apply = () => setNarrow(media.matches)
-    apply()
-    media.addEventListener('change', apply)
-    return () => media.removeEventListener('change', apply)
-  }, [threshold])
-
-  return narrow
-}
-
 export function Sidebar() {
   const preference = useSettings((s) => s.sidebarCollapsed)
-  const narrow = useNarrowViewport()
-  const collapsed = preference || narrow
+  const narrow = useIsNarrow()
+  const mobile = useIsMobile()
+  const navOpen = useUI((s) => s.navOpen)
+  const setNavOpen = useUI((s) => s.setNavOpen)
+  const collapsed = mobile ? false : preference || narrow
   const setSetting = useSettings((s) => s.set)
   const displayName = useSettings((s) => s.displayName)
   const openSingleton = useWorkspace((s) => s.openSingleton)
@@ -102,148 +93,204 @@ export function Sidebar() {
   )
   const pinned = useMemo(() => tabs.filter((t) => t.pinned && t.kind !== 'home'), [tabs])
 
+  // Any navigation closes the drawer. Without this, tapping a destination on a
+  // phone leaves you looking at the menu you just used instead of the thing you
+  // asked for.
+  const go = (run: () => void) => {
+    run()
+    if (mobile) setNavOpen(false)
+  }
+
+  // Identical in both containers, so it is built once. The only thing that
+  // differs is what wraps it: a column that can collapse to icons, or a
+  // drawer that slides over the workspace.
+  const body = (
+    <>
+        {/* Identity */}
+        <div className={cn('flex h-[52px] shrink-0 items-center gap-2', collapsed ? 'justify-center px-2' : 'px-4')}>
+          <KovaiMark className="h-[18px] w-[18px]" />
+          {!collapsed && (
+            <span className="text-[14.5px] font-semibold tracking-[-0.02em] text-ink">KOVAI</span>
+          )}
+          {!collapsed && (
+            <Tooltip content="Collapse sidebar" shortcut={`${modKey()} B`}>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="ml-auto"
+                onClick={() => setSetting('sidebarCollapsed', true)}
+                aria-label="Collapse sidebar"
+              >
+                <PanelLeft className="h-[14px] w-[14px]" />
+              </Button>
+            </Tooltip>
+          )}
+        </div>
+
+        {/* Search */}
+        <div className={cn('shrink-0', collapsed ? 'px-2 pb-2' : 'px-3 pb-3')}>
+          {collapsed ? (
+            <Tooltip content="Search" side="right" shortcut={`${modKey()} /`}>
+              <Button variant="ghost" size="icon" className="w-full" onClick={() => go(() => setSearchOpen(true))}>
+                <Search className="h-[15px] w-[15px]" />
+              </Button>
+            </Tooltip>
+          ) : (
+            <button
+              onClick={() => go(() => setSearchOpen(true))}
+              className="group flex h-[34px] w-full items-center gap-2 rounded-[9px] border border-line bg-subtle px-2.5 text-left transition-colors duration-150 hover:border-line-strong"
+            >
+              <Search className="h-[13px] w-[13px] shrink-0 text-ink-faint" />
+              <span className="flex-1 text-[13px] text-ink-faint">Search</span>
+              <Kbd>{modKey()} /</Kbd>
+            </button>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <nav className="min-h-0 flex-1 overflow-y-auto px-2 no-scrollbar">
+          <div className="space-y-[1px]">
+            {NAV.map((item) => (
+              <NavItem
+                key={item.kind}
+                {...item}
+                collapsed={collapsed}
+                active={activeKind === item.kind}
+                onClick={() => go(() => openSingleton(item.kind, item.label))}
+              />
+            ))}
+          </div>
+
+          <div className="my-3 h-px bg-line" />
+
+          <div className="space-y-[1px]">
+            {LIBRARY.map((item) => (
+              <NavItem
+                key={item.kind}
+                {...item}
+                collapsed={collapsed}
+                active={activeKind === item.kind}
+                onClick={() => go(() => openSingleton(item.kind, item.label))}
+              />
+            ))}
+          </div>
+
+          {!collapsed && pinned.length > 0 && (
+            <>
+              <SectionLabel className="mb-1.5 mt-5">Pinned</SectionLabel>
+              <div className="space-y-[1px]">
+                {pinned.map((tab) => (
+                  <WorkspaceLink
+                    key={tab.id}
+                    title={tab.title}
+                    active={tab.id === activeTabId}
+                    onClick={() => go(() => setActive(tab.id))}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
+          {!collapsed && recent.length > 0 && (
+            <>
+              <SectionLabel className="mb-1.5 mt-5">Recent</SectionLabel>
+              <div className="space-y-[1px] pb-3">
+                {recent.map((tab) => (
+                  <WorkspaceLink
+                    key={tab.id}
+                    title={tab.title}
+                    meta={relativeTime(tab.createdAt)}
+                    active={tab.id === activeTabId}
+                    onClick={() => go(() => setActive(tab.id))}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </nav>
+
+        {/* Status rail */}
+        <div className={cn('shrink-0 border-t border-line', collapsed ? 'p-2' : 'p-3')}>
+          <div className={cn('space-y-2', collapsed && 'space-y-1.5')}>
+            <PrivacyToggle collapsed={collapsed} />
+            <RuntimeStatus collapsed={collapsed} />
+            <UsageButton collapsed={collapsed} />
+          </div>
+
+          <div className="mt-3 border-t border-line pt-3">
+            <button
+              onClick={() => go(() => openTab({ kind: 'settings', title: 'Settings' }))}
+              className={cn(
+                'flex w-full items-center gap-2.5 rounded-[9px] p-1.5 text-left transition-colors duration-150 hover:bg-subtle',
+                collapsed && 'justify-center',
+              )}
+            >
+              <div className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[7px] bg-ink text-[11px] font-semibold text-canvas">
+                {(displayName || 'K').slice(0, 1).toUpperCase()}
+              </div>
+              {!collapsed && (
+                <>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[12.5px] font-medium text-ink">
+                      {displayName || 'Your workspace'}
+                    </p>
+                    <p className="truncate text-[11px] text-ink-faint">Local-first</p>
+                  </div>
+                  <Settings className="h-[13px] w-[13px] shrink-0 text-ink-faint" />
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+    </>
+  )
+
+  if (mobile) {
+    return (
+      <AnimatePresence>
+        {navOpen && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] md:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              onClick={() => setNavOpen(false)}
+              aria-hidden
+            />
+            <motion.aside
+              key="drawer"
+              className="pb-safe fixed inset-y-0 left-0 z-50 flex w-[272px] max-w-[84vw] flex-col border-r border-line bg-surface shadow-float md:hidden"
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', stiffness: 460, damping: 42 }}
+              /* A swipe back towards the edge closes it, as it does everywhere
+                 else on a phone. */
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={{ left: 0.4, right: 0 }}
+              onDragEnd={(_, info) => {
+                if (info.offset.x < -60 || info.velocity.x < -450) setNavOpen(false)
+              }}
+              aria-label="Navigation"
+            >
+              {body}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+    )
+  }
+
   return (
     <motion.aside
       animate={{ width: collapsed ? 56 : 248 }}
       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-      className="relative z-20 flex h-full shrink-0 flex-col border-r border-line bg-surface"
+      className="relative z-20 hidden h-full shrink-0 flex-col border-r border-line bg-surface md:flex"
     >
-      {/* Identity */}
-      <div className={cn('flex h-[52px] shrink-0 items-center gap-2', collapsed ? 'justify-center px-2' : 'px-4')}>
-        <KovaiMark className="h-[18px] w-[18px]" />
-        {!collapsed && (
-          <span className="text-[14.5px] font-semibold tracking-[-0.02em] text-ink">KOVAI</span>
-        )}
-        {!collapsed && (
-          <Tooltip content="Collapse sidebar" shortcut={`${modKey()} B`}>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="ml-auto"
-              onClick={() => setSetting('sidebarCollapsed', true)}
-              aria-label="Collapse sidebar"
-            >
-              <PanelLeft className="h-[14px] w-[14px]" />
-            </Button>
-          </Tooltip>
-        )}
-      </div>
-
-      {/* Search */}
-      <div className={cn('shrink-0', collapsed ? 'px-2 pb-2' : 'px-3 pb-3')}>
-        {collapsed ? (
-          <Tooltip content="Search" side="right" shortcut={`${modKey()} /`}>
-            <Button variant="ghost" size="icon" className="w-full" onClick={() => setSearchOpen(true)}>
-              <Search className="h-[15px] w-[15px]" />
-            </Button>
-          </Tooltip>
-        ) : (
-          <button
-            onClick={() => setSearchOpen(true)}
-            className="group flex h-[34px] w-full items-center gap-2 rounded-[9px] border border-line bg-subtle px-2.5 text-left transition-colors duration-150 hover:border-line-strong"
-          >
-            <Search className="h-[13px] w-[13px] shrink-0 text-ink-faint" />
-            <span className="flex-1 text-[13px] text-ink-faint">Search</span>
-            <Kbd>{modKey()} /</Kbd>
-          </button>
-        )}
-      </div>
-
-      {/* Navigation */}
-      <nav className="min-h-0 flex-1 overflow-y-auto px-2 no-scrollbar">
-        <div className="space-y-[1px]">
-          {NAV.map((item) => (
-            <NavItem
-              key={item.kind}
-              {...item}
-              collapsed={collapsed}
-              active={activeKind === item.kind}
-              onClick={() => openSingleton(item.kind, item.label)}
-            />
-          ))}
-        </div>
-
-        <div className="my-3 h-px bg-line" />
-
-        <div className="space-y-[1px]">
-          {LIBRARY.map((item) => (
-            <NavItem
-              key={item.kind}
-              {...item}
-              collapsed={collapsed}
-              active={activeKind === item.kind}
-              onClick={() => openSingleton(item.kind, item.label)}
-            />
-          ))}
-        </div>
-
-        {!collapsed && pinned.length > 0 && (
-          <>
-            <SectionLabel className="mb-1.5 mt-5">Pinned</SectionLabel>
-            <div className="space-y-[1px]">
-              {pinned.map((tab) => (
-                <WorkspaceLink
-                  key={tab.id}
-                  title={tab.title}
-                  active={tab.id === activeTabId}
-                  onClick={() => setActive(tab.id)}
-                />
-              ))}
-            </div>
-          </>
-        )}
-
-        {!collapsed && recent.length > 0 && (
-          <>
-            <SectionLabel className="mb-1.5 mt-5">Recent</SectionLabel>
-            <div className="space-y-[1px] pb-3">
-              {recent.map((tab) => (
-                <WorkspaceLink
-                  key={tab.id}
-                  title={tab.title}
-                  meta={relativeTime(tab.createdAt)}
-                  active={tab.id === activeTabId}
-                  onClick={() => setActive(tab.id)}
-                />
-              ))}
-            </div>
-          </>
-        )}
-      </nav>
-
-      {/* Status rail */}
-      <div className={cn('shrink-0 border-t border-line', collapsed ? 'p-2' : 'p-3')}>
-        <div className={cn('space-y-2', collapsed && 'space-y-1.5')}>
-          <PrivacyToggle collapsed={collapsed} />
-          <RuntimeStatus collapsed={collapsed} />
-          <UsageButton collapsed={collapsed} />
-        </div>
-
-        <div className="mt-3 border-t border-line pt-3">
-          <button
-            onClick={() => openTab({ kind: 'settings', title: 'Settings' })}
-            className={cn(
-              'flex w-full items-center gap-2.5 rounded-[9px] p-1.5 text-left transition-colors duration-150 hover:bg-subtle',
-              collapsed && 'justify-center',
-            )}
-          >
-            <div className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[7px] bg-ink text-[11px] font-semibold text-canvas">
-              {(displayName || 'K').slice(0, 1).toUpperCase()}
-            </div>
-            {!collapsed && (
-              <>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[12.5px] font-medium text-ink">
-                    {displayName || 'Your workspace'}
-                  </p>
-                  <p className="truncate text-[11px] text-ink-faint">Local-first</p>
-                </div>
-                <Settings className="h-[13px] w-[13px] shrink-0 text-ink-faint" />
-              </>
-            )}
-          </button>
-        </div>
-      </div>
+      {body}
 
       {collapsed && !narrow && (
         <Tooltip content="Expand sidebar" side="right" shortcut={`${modKey()} B`}>

@@ -227,7 +227,7 @@ export function TopTabs() {
         <Popover>
           <PopoverTrigger asChild>
             <button
-              className="ml-0.5 flex h-[31px] w-[31px] shrink-0 items-center justify-center rounded-[8px] text-ink-faint transition-colors duration-150 hover:bg-subtle hover:text-ink"
+              className="ml-0.5 flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[8px] text-ink-faint transition-colors duration-150 hover:bg-subtle hover:text-ink md:h-[31px] md:w-[31px]"
               aria-label="New tab"
               onDoubleClick={() => openTab({ kind: 'home' })}
             >
@@ -275,7 +275,9 @@ export function TopTabs() {
         </Popover>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1.5">
+      {/* The activity chip and the palette both have a home in the phone
+          header, and the keycap advertises a shortcut a phone cannot press. */}
+      <div className="hidden shrink-0 items-center gap-1.5 md:flex">
         <ActivityIndicator />
 
         <Tooltip content="Command palette" shortcut={`${modKey()} K`}>
@@ -353,7 +355,7 @@ function TabChip({
             setMenuOpen(true)
           }}
           className={cn(
-            'group flex h-[31px] max-w-[210px] shrink-0 cursor-default items-center gap-1.5 rounded-[9px] border px-2.5 transition-all duration-150',
+            'group flex h-[38px] max-w-[62vw] shrink-0 cursor-default items-center gap-1.5 rounded-[9px] border px-2.5 transition-all duration-150 md:h-[31px] md:max-w-[210px] [@media(pointer:coarse)]:h-[38px]',
             active
               ? 'shadow-[0_1px_3px_rgba(0,0,0,0.06)]'
               : 'border-transparent text-ink-muted hover:border-line hover:bg-subtle',
@@ -425,8 +427,18 @@ function TabChip({
                 closeTab(tab.id)
               }}
               className={cn(
-                'ml-0.5 flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-[4px] transition-all duration-150 hover:bg-black/10 dark:hover:bg-white/10',
-                active ? 'opacity-90 hover:opacity-100' : 'opacity-0 group-hover:opacity-100 text-ink-faint hover:text-ink',
+                // 16px is a comfortable cursor target and an impossible finger
+                // one — and it sits inside the tab, so a near miss opens the
+                // thing you were trying to close. On touch it gets 26px and is
+                // always visible, since there is no hover to reveal it.
+                'ml-0.5 flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[6px] transition-all duration-150 hover:bg-black/10 md:h-[16px] md:w-[16px] md:rounded-[4px] dark:hover:bg-white/10',
+                // A tablet is wide enough for the desktop layout and still
+                // driven by a finger, so the target follows the pointer rather
+                // than the width.
+                '[@media(pointer:coarse)]:h-[26px] [@media(pointer:coarse)]:w-[26px] [@media(pointer:coarse)]:rounded-[6px]',
+                active
+                  ? 'opacity-90 hover:opacity-100'
+                  : 'text-ink-faint opacity-100 group-hover:opacity-100 hover:text-ink md:opacity-0 [@media(pointer:coarse)]:opacity-100',
               )}
               style={active ? { color: theme.color } : undefined}
               aria-label={`Close ${tab.title}`}

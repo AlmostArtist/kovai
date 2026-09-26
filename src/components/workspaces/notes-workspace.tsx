@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pin, PinOff, Plus, Search, StickyNote, Trash2 } from 'lucide-react'
+import { ChevronLeft, Pin, PinOff, Plus, Search, StickyNote, Trash2 } from 'lucide-react'
 import { Button, EmptyState, Input } from '@/components/ui'
 import { useWorkspace, type Tab } from '@/store/workspace'
+import { useIsMobile } from '@/hooks/use-viewport'
 import { cn, relativeTime, truncate, uid } from '@/lib/utils'
 import type { Note } from '@/lib/db/types'
 
@@ -63,7 +64,14 @@ export function NotesWorkspace({ tab }: { tab: Tab }) {
     return all.filter((n) => `${n.title} ${n.body}`.toLowerCase().includes(q))
   }, [notes, query])
 
-  const selected = (notes ?? []).find((n) => n.id === selectedId) ?? filtered[0]
+  const mobile = useIsMobile()
+  // On a phone this is a master–detail pair, not two columns: the list is the
+  // screen until you pick something, and the note is the screen after. So the
+  // "fall back to the first note" convenience that makes the desktop layout
+  // feel continuous is exactly what has to go — it would mean never seeing the
+  // list at all.
+  const picked = (notes ?? []).find((n) => n.id === selectedId)
+  const selected = mobile ? picked : (picked ?? filtered[0])
 
   const create = () => {
     const note: Note = {
@@ -79,8 +87,13 @@ export function NotesWorkspace({ tab }: { tab: Tab }) {
   }
 
   return (
-    <div className="flex h-full">
-      <div className="flex w-[280px] shrink-0 flex-col border-r border-line bg-surface">
+    <div className="flex h-full flex-col md:flex-row">
+      <div
+        className={cn(
+          'flex min-h-0 flex-col border-line bg-surface md:w-[280px] md:shrink-0 md:border-r',
+          mobile && selected ? 'hidden' : 'flex-1 md:flex-none',
+        )}
+      >
         <div className="flex shrink-0 items-center gap-2 p-3">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-[13px] w-[13px] -translate-y-1/2 text-ink-faint" />
@@ -138,9 +151,10 @@ export function NotesWorkspace({ tab }: { tab: Tab }) {
           note={selected}
           onSave={(patch) => save.mutate({ ...selected, ...patch })}
           onDelete={() => remove.mutate(selected.id)}
+          onBack={mobile ? () => patchState(tab.id, { selectedId: undefined }) : undefined}
         />
       ) : (
-        <div className="flex flex-1 items-center justify-center">
+        <div className={cn('flex-1 items-center justify-center', mobile ? 'hidden md:flex' : 'flex')}>
           <EmptyState
             icon={StickyNote}
             title="Nothing written down yet."
@@ -161,10 +175,13 @@ function NoteEditor({
   note,
   onSave,
   onDelete,
+  onBack,
 }: {
   note: Note
   onSave: (patch: Partial<Note>) => void
   onDelete: () => void
+  /** Present only where the list is a separate screen. */
+  onBack?: () => void
 }) {
   const [title, setTitle] = useState(note.title)
   const [body, setBody] = useState(note.body)
@@ -179,7 +196,16 @@ function NoteEditor({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <div className="flex shrink-0 items-center gap-1.5 border-b border-line px-5 py-2.5">
+      <div className="flex shrink-0 items-center gap-1.5 border-b border-line px-3 py-2.5 md:px-5">
+        {onBack && (
+          <button
+            onClick={onBack}
+            aria-label="Back to notes"
+            className="-ml-1 mr-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] text-ink-muted active:bg-subtle"
+          >
+            <ChevronLeft className="h-[18px] w-[18px]" />
+          </button>
+        )}
         <div className="flex items-center gap-1">
           {COLORS.map((color) => (
             <button
@@ -214,7 +240,7 @@ function NoteEditor({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[720px] px-8 py-7">
+        <div className="pb-safe mx-auto max-w-[720px] px-4 py-5 md:px-8 md:py-7">
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}

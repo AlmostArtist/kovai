@@ -30,7 +30,7 @@ export function Onboarding() {
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-canvas px-6">
+    <div className="pb-safe pt-safe fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-canvas px-4 py-8 sm:px-6">
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -41,7 +41,7 @@ export function Onboarding() {
           <>
             <div className="mb-8 flex flex-col items-center text-center">
               <KovaiMark className="mb-5 h-7 w-7" />
-              <h1 className="text-[26px] font-medium tracking-[-0.025em] text-ink">
+              <h1 className="text-[22px] font-medium tracking-[-0.025em] text-ink sm:text-[26px]">
                 Welcome to KOVAI.
               </h1>
               <p className="mt-2 text-[14.5px] text-ink-muted">

@@ -347,7 +347,7 @@ export function ProjectWorkspace({ tab }: { tab: Tab }) {
       />
 
       {section === 'overview' && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Stat label="Assets" value={String(data?.assets.length ?? 0)} />
           <Stat label="Conversations" value={String(data?.conversations.length ?? 0)} />
           <Stat label="Created" value={relativeTime(project.createdAt)} />

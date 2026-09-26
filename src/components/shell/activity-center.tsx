@@ -58,7 +58,7 @@ export function ActivityCenter() {
   )
 
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2">
+    <div className="pb-safe pointer-events-none fixed inset-x-2 bottom-4 z-40 flex flex-col items-stretch gap-2 sm:inset-x-auto sm:right-4 sm:items-end">
       <AnimatePresence>
         {open && (
           <motion.div
@@ -66,7 +66,7 @@ export function ActivityCenter() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-            className="pointer-events-auto w-[336px] overflow-hidden rounded-[14px] border border-line bg-elevated shadow-float"
+            className="pointer-events-auto w-full overflow-hidden rounded-[14px] border border-line bg-elevated shadow-float sm:w-[336px]"
           >
             <div className="flex items-center gap-2 border-b border-line px-3.5 py-2.5">
               <Activity className="h-[13px] w-[13px] text-ink-faint" />

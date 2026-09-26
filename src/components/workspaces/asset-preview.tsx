@@ -56,19 +56,23 @@ export function AssetPreview() {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.99, opacity: 0 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="m-auto flex max-h-[88vh] w-[min(1180px,92vw)] overflow-hidden rounded-[16px] bg-elevated shadow-float"
+            className="m-auto flex max-h-[92svh] w-full flex-col overflow-hidden rounded-[16px] bg-elevated shadow-float md:max-h-[88vh] md:w-[min(1180px,92vw)] md:flex-row"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex min-w-0 flex-1 items-center justify-center bg-subtle p-6">
+            <div className="flex min-w-0 flex-1 items-center justify-center bg-subtle p-3 md:p-6">
               {data.kind === 'video' ? (
-                <video src={data.url} controls className="max-h-[78vh] max-w-full rounded-[10px]" />
+                <video src={data.url} controls className="max-h-[42svh] max-w-full rounded-[10px] md:max-h-[78vh]" />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={data.url} alt={data.name} className="max-h-[78vh] max-w-full rounded-[10px] object-contain" />
+                <img
+                  src={data.url}
+                  alt={data.name}
+                  className="max-h-[42svh] max-w-full rounded-[10px] object-contain md:max-h-[78vh]"
+                />
               )}
             </div>
 
-            <aside className="flex w-[304px] shrink-0 flex-col border-l border-line">
+            <aside className="flex min-h-0 shrink-0 flex-col border-line md:w-[304px] md:border-l">
               <div className="flex items-start gap-2 border-b border-line px-4 py-3.5">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13.5px] font-medium text-ink">{data.name}</p>

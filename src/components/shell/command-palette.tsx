@@ -70,7 +70,7 @@ export function CommandPalette() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.99 }}
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed left-1/2 top-[14vh] z-50 w-[calc(100vw-2rem)] max-w-[600px] -translate-x-1/2"
+            className="fixed left-1/2 top-[6vh] z-50 w-[calc(100vw-1.5rem)] max-w-[600px] -translate-x-1/2 sm:top-[14vh] sm:w-[calc(100vw-2rem)]"
           >
             <PaletteBody mode={mode} onClose={close} />
           </motion.div>

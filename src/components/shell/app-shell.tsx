@@ -10,6 +10,7 @@ import { Onboarding } from './onboarding'
 import { UsagePanel } from './usage-panel'
 import { CompanionRail } from './companion-rail'
 import { DynamicIsland } from './dynamic-island'
+import { MobileBar } from './mobile-bar'
 import { AssetPreview } from '../workspaces/asset-preview'
 import { WorkspaceSurface } from '../workspaces/workspace-surface'
 import { useWorkspace } from '@/store/workspace'
@@ -38,17 +39,18 @@ export function AppShell() {
   // that is about to be replaced.
   if (!hydrated) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-canvas">
+      <div className="flex h-[100dvh] w-full items-center justify-center bg-canvas">
         <KovaiMark className="h-6 w-6 opacity-40 breathe" />
       </div>
     )
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-canvas">
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-canvas">
       <Sidebar />
 
       <div className="flex min-w-0 flex-1 flex-col">
+        <MobileBar />
         <TopTabs />
 
         <main className="relative min-h-0 flex-1">

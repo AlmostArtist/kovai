@@ -135,7 +135,7 @@ export function VisionWorkspace({ tab }: { tab: Tab }) {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[780px] px-8 py-6">
+        <div className="mx-auto max-w-[780px] px-4 py-4 md:px-8 md:py-6">
           {images.length === 0 ? (
             <div
               onDragOver={(e) => e.preventDefault()}
@@ -212,7 +212,7 @@ export function VisionWorkspace({ tab }: { tab: Tab }) {
         </div>
       </div>
 
-      <div className="shrink-0 px-8 pb-6">
+      <div className="pb-safe shrink-0 px-3 pb-3 md:px-8 md:pb-6">
         <div className="mx-auto max-w-[780px]">
           {!route.ok && images.length > 0 && (
             <ErrorState

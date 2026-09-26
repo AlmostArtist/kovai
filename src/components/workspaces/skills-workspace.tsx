@@ -155,35 +155,35 @@ export function SkillsWorkspace({ tab }: { tab: Tab }) {
   const shelfLabel = SHELVES.find((s) => s.id === shelf)!.label
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full flex-col md:flex-row">
       {/* The shelves. Skills have no folders of their own, so these are the
           distinctions that actually exist rather than an invented hierarchy. */}
-      <aside className="flex w-[212px] shrink-0 flex-col border-r border-line bg-surface">
-        <div className="p-3">
+      <aside className="flex shrink-0 flex-col border-b border-line bg-surface md:w-[212px] md:border-b-0 md:border-r">
+        <div className="hidden p-3 md:block">
           <Button variant="primary" className="w-full" onClick={() => fileRef.current?.click()}>
             <Upload className="h-[13px] w-[13px]" />
             Import SKILL.md
           </Button>
         </div>
 
-        <p className="px-4 pb-1.5 pt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-ink-faint">
+        <p className="hidden px-4 pb-1.5 pt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-ink-faint md:block">
           Shelves
         </p>
 
-        <nav className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
+        <nav className="flex min-h-0 flex-row gap-1 overflow-x-auto px-2 py-2 no-scrollbar md:flex-1 md:flex-col md:gap-0 md:overflow-x-visible md:overflow-y-auto md:py-0 md:pb-3">
           {SHELVES.map((entry) => (
             <button
               key={entry.id}
               onClick={() => setShelf(entry.id)}
               className={cn(
-                'flex h-[32px] w-full items-center gap-2.5 rounded-[8px] px-2 text-[13px] transition-colors',
+                'flex h-[32px] shrink-0 items-center gap-2 whitespace-nowrap rounded-[8px] px-3 text-[13px] transition-colors md:w-full md:gap-2.5 md:px-2',
                 shelf === entry.id ? 'bg-subtle text-ink' : 'text-ink-muted hover:bg-subtle hover:text-ink',
               )}
             >
               <Folder
                 className={cn('h-[14px] w-[14px]', shelf === entry.id ? 'text-accent' : 'text-ink-faint')}
               />
-              <span className="min-w-0 flex-1 truncate text-left">{entry.label}</span>
+              <span className="min-w-0 truncate text-left md:flex-1">{entry.label}</span>
               <span className="shrink-0 text-[11.5px] tabular-nums text-ink-faint">
                 {counts[entry.id] ?? 0}
               </span>
@@ -191,7 +191,9 @@ export function SkillsWorkspace({ tab }: { tab: Tab }) {
           ))}
         </nav>
 
-        <div className="border-t border-line p-3">
+        {/* On a phone these live in the strip itself; there is no rail
+            underneath them to sit at the bottom of. */}
+        <div className="hidden border-t border-line p-3 md:block">
           <Button variant="secondary" className="w-full" onClick={() => setDrafting('')}>
             <FileText className="h-[13px] w-[13px]" />
             Write one
@@ -207,10 +209,10 @@ export function SkillsWorkspace({ tab }: { tab: Tab }) {
           void readFiles(e.dataTransfer.files)
         }}
       >
-        <div className="px-7 py-6">
-          <header className="mb-5 flex items-end gap-4">
+        <div className="px-4 py-4 md:px-7 md:py-6">
+          <header className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:gap-4">
             <div className="min-w-0 flex-1">
-              <h1 className="text-[21px] font-medium tracking-[-0.022em] text-ink">
+              <h1 className="text-[19px] font-medium tracking-[-0.022em] text-ink md:text-[21px]">
                 {shelfLabel} <span className="text-ink-faint">({filtered.length})</span>
               </h1>
               <p className="mt-1 flex items-center gap-1.5 text-[12.5px] text-ink-faint">
@@ -220,25 +222,39 @@ export function SkillsWorkspace({ tab }: { tab: Tab }) {
               </p>
             </div>
 
-            <div className="relative w-[240px]">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-[13px] w-[13px] -translate-y-1/2 text-ink-faint" />
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search skills"
-                className="pl-8"
+            <div className="flex items-center gap-2">
+              <div className="relative min-w-0 flex-1 md:w-[240px] md:flex-none">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-[13px] w-[13px] -translate-y-1/2 text-ink-faint" />
+                <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search skills"
+                  className="pl-8"
+                />
+              </div>
+
+              <Segmented
+                size="sm"
+                value={layout}
+                onChange={setLayout}
+                options={[
+                  { value: 'grid', label: <LayoutGrid className="h-[13px] w-[13px]" />, title: 'Grid' },
+                  { value: 'list', label: <List className="h-[13px] w-[13px]" />, title: 'List' },
+                ]}
               />
             </div>
 
-            <Segmented
-              size="sm"
-              value={layout}
-              onChange={setLayout}
-              options={[
-                { value: 'grid', label: <LayoutGrid className="h-[13px] w-[13px]" />, title: 'Grid' },
-                { value: 'list', label: <List className="h-[13px] w-[13px]" />, title: 'List' },
-              ]}
-            />
+            {/* The rail's two actions, which have nowhere to live on a phone. */}
+            <div className="flex gap-2 md:hidden">
+              <Button variant="primary" className="flex-1" onClick={() => fileRef.current?.click()}>
+                <Upload className="h-[13px] w-[13px]" />
+                Import
+              </Button>
+              <Button variant="secondary" className="flex-1" onClick={() => setDrafting('')}>
+                <FileText className="h-[13px] w-[13px]" />
+                Write one
+              </Button>
+            </div>
           </header>
 
           <input

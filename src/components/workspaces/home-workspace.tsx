@@ -112,7 +112,7 @@ export function HomeWorkspace({ tab }: { tab: Tab }) {
     <div className="relative h-full overflow-y-auto">
       <HomeBackdrop />
 
-      <div className="relative mx-auto flex min-h-full w-full max-w-[1120px] flex-col items-center px-8 pb-12 pt-[13vh]">
+      <div className="pb-safe relative mx-auto flex min-h-full w-full max-w-[1120px] flex-col items-center px-4 pb-8 pt-[7vh] md:px-8 md:pb-12 md:pt-[13vh]">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -173,7 +173,7 @@ export function HomeWorkspace({ tab }: { tab: Tab }) {
               }
             />
 
-            <div className="-mx-8 mt-3.5 flex flex-nowrap items-center justify-center gap-1.5 overflow-x-auto px-8 no-scrollbar">
+            <div className="-mx-4 mt-3.5 flex flex-nowrap items-center gap-1.5 overflow-x-auto px-4 no-scrollbar md:-mx-8 md:justify-center md:px-8">
               {SUGGESTIONS.map((suggestion) => (
                 <button
                   key={suggestion.label}

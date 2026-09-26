@@ -99,7 +99,7 @@ export function AssetsWorkspace({ tab }: { tab: Tab }) {
   }, [assets, folder, query])
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full flex-col md:flex-row">
       <Dialog
         open={adding}
         onOpenChange={(open) => {
@@ -125,14 +125,14 @@ export function AssetsWorkspace({ tab }: { tab: Tab }) {
         )}
       </Dialog>
 
-      <div className="w-[180px] shrink-0 border-r border-line bg-surface p-3">
-        <div className="space-y-[1px]">
+      <div className="shrink-0 border-b border-line bg-surface p-2 md:w-[180px] md:border-b-0 md:border-r md:p-3">
+        <div className="flex flex-row gap-1 overflow-x-auto no-scrollbar md:block md:space-y-[1px]">
           {FOLDERS.map((entry) => (
             <button
               key={entry.id}
               onClick={() => setFolder(entry.id)}
               className={cn(
-                'flex h-[30px] w-full items-center rounded-[8px] px-2.5 text-left text-[13px] transition-colors duration-150',
+                'flex h-[32px] shrink-0 items-center whitespace-nowrap rounded-[8px] px-3 text-left text-[13px] transition-colors duration-150 md:h-[30px] md:w-full md:px-2.5',
                 folder === entry.id
                   ? 'bg-subtle font-medium text-ink'
                   : 'text-ink-muted hover:bg-subtle',
@@ -179,7 +179,7 @@ export function AssetsWorkspace({ tab }: { tab: Tab }) {
           </div>
         )}
 
-        <div className="px-8 py-7">
+        <div className="px-4 py-5 md:px-8 md:py-7">
           <WorkspaceHeader
             title="Assets"
             subtitle={`${filtered.length} item${filtered.length === 1 ? '' : 's'}`}
@@ -191,7 +191,7 @@ export function AssetsWorkspace({ tab }: { tab: Tab }) {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search assets"
-                    className="w-[220px] pl-8"
+                    className="w-full pl-8 sm:w-[220px]"
                   />
                 </div>
                 <Button variant="primary" size="sm" onClick={() => stage([])}>
