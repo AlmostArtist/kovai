@@ -19,7 +19,7 @@ boundary between what stays on your machine and what does not.
 **One command. It handles the rest.**
 
 ```bash
-git clone https://github.com/kishorekrazzy/kovai.git
+git clone https://github.com/AlmostArtist/kovai.git
 cd kovai
 ./install.sh          # Windows: install.bat
 ```
