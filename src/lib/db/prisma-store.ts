@@ -32,8 +32,15 @@ const ms = (d: unknown) => (d instanceof Date ? d.getTime() : Number(d ?? 0))
 const at = (n: number | undefined) => (n ? new Date(n) : undefined)
 
 export async function createPrismaStore(): Promise<KovaiStore> {
-  const { PrismaClient } = (await import('@prisma/client')) as { PrismaClient: new () => AnyRow }
-  const prisma = new PrismaClient() as never as PrismaAPI
+  // Routed through `unknown` deliberately. `@prisma/client` ships one set of
+  // types before `prisma generate` has run and a different, richer set after,
+  // and a direct cast typechecks against exactly one of them — which is how a
+  // clean clone came to fail `npm run build` while a working copy passed. The
+  // shape this file actually relies on is PrismaAPI, declared at the bottom.
+  const mod = (await import('@prisma/client')) as unknown as {
+    PrismaClient: new () => PrismaAPI
+  }
+  const prisma = new mod.PrismaClient()
 
   return {
     projects: {
