@@ -123,11 +123,38 @@ export const KIE_FALLBACK_MODELS: AIModel[] = [
   },
 ]
 
-/** Shape of an entry in a user-supplied KIE_MODELS_FILE. */
+/**
+ * An entry in KIE's own catalogue, or in a user-supplied KIE_MODELS_FILE.
+ *
+ * KIE names the identifier `model` (with `slug` alongside it); a hand-written
+ * file is more likely to say `id`. All three are accepted because the only
+ * thing that matters is finding the string the API will recognise — and
+ * failing to find it is how a live catalogue of 218 real models silently
+ * became a hard-coded list of guesses.
+ */
 export interface KieModelConfig {
-  id: string
+  id?: string
+  model?: string
+  slug?: string
   name?: string
-  description?: string
+  title?: string
+  description?: string | null
   capabilities?: string[]
+  /** KIE's own classification: "Text to Image", "Image to Image", … */
+  taskType?: string[]
   params?: ParamSpec[]
 }
+
+/** Controls to offer for a remote model that ships no schema of its own. */
+export const DEFAULT_IMAGE_PARAMS: ParamSpec[] = [
+  ASPECT(['auto', '1:1', '3:4', '4:3', '9:16', '16:9'], 'auto'),
+  { key: 'referenceImages', label: 'Reference images', type: 'images', max: 4 },
+  SEED,
+  NEGATIVE,
+]
+
+export const DEFAULT_VIDEO_PARAMS: ParamSpec[] = [
+  ASPECT(['16:9', '9:16', '1:1'], '16:9'),
+  { key: 'referenceImages', label: 'First frame', type: 'images', max: 1 },
+  SEED,
+]

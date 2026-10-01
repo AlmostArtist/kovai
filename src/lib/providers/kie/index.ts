@@ -3,7 +3,7 @@ import 'server-only'
 import { readFile } from 'node:fs/promises'
 import { fetchWithTimeout } from '../http'
 import { errorFromResponse, ProviderError } from '../types'
-import { KIE_FALLBACK_MODELS, type KieModelConfig } from './catalogue'
+import { DEFAULT_IMAGE_PARAMS, DEFAULT_VIDEO_PARAMS, KIE_FALLBACK_MODELS, type KieModelConfig } from './catalogue'
 import type {
   AIModel,
   Capability,
@@ -116,8 +116,15 @@ export class KieProvider implements ImageProvider {
         'kie',
       )
       if (!res.ok) return null
-      const body = (await res.json()) as KieEnvelope<KieModelConfig[]> | KieModelConfig[]
-      const raw = Array.isArray(body) ? body : (body.data ?? [])
+      // Three shapes seen in the wild: a bare array, `{data: [...]}`, and
+      // what the live API actually sends — `{data: {total, models: [...]}}`.
+      // Only the last one is real, and missing it is indistinguishable from
+      // the catalogue being unreachable, which is how this failed quietly.
+      const body = (await res.json()) as
+        | KieModelConfig[]
+        | KieEnvelope<KieModelConfig[] | { models?: KieModelConfig[] }>
+      const data = Array.isArray(body) ? body : body.data
+      const raw = Array.isArray(data) ? data : (data?.models ?? [])
       if (!Array.isArray(raw) || !raw.length) return null
       return raw.map(toModel).filter((m): m is AIModel => Boolean(m))
     } catch {
@@ -259,24 +266,72 @@ const INPUT_KEYS: Record<string, string> = {
   count: 'num_images',
 }
 
+/**
+ * Turns one catalogue entry into a model.
+ *
+ * KIE calls the identifier `model`; a hand-written file is likelier to say
+ * `id`. Taking whichever is present is the whole difference between the live
+ * catalogue loading and being silently discarded — which is what was
+ * happening, leaving the app offering models the API had never heard of.
+ */
 function toModel(raw: KieModelConfig): AIModel | null {
-  if (!raw?.id) return null
-  const known = KIE_FALLBACK_MODELS.find((m) => m.id === raw.id)
+  const id = raw?.model ?? raw?.id ?? raw?.slug
+  if (!id) return null
+
+  const known = KIE_FALLBACK_MODELS.find((m) => m.id === id)
   const capabilities = (raw.capabilities
     ?.map((c) => c.toUpperCase())
     .filter((c): c is Capability =>
       ['IMAGE_GENERATION', 'IMAGE_EDITING', 'VIDEO_GENERATION', 'UPSCALE'].includes(c),
-    ) ?? known?.capabilities ?? ['IMAGE_GENERATION']) as Capability[]
+    ) ??
+    known?.capabilities ??
+    fromTaskTypes(raw.taskType)) as Capability[]
+
+  const video = capabilities.includes('VIDEO_GENERATION')
 
   return {
-    id: raw.id,
-    name: raw.name ?? known?.name ?? raw.id,
+    id,
+    name: raw.name ?? known?.name ?? prettyName(id),
     providerId: 'kie',
     capabilities,
-    description: raw.description ?? known?.description,
-    params: raw.params ?? known?.params ?? [],
+    // KIE's titles are written for search engines — "Affordable Kling 2.1
+    // Master API — Premium Text-to-Video Generation" — so the title is used as
+    // the description, where that reads as a blurb, and the name is built from
+    // the id, where it reads as a name.
+    description: raw.description ?? known?.description ?? raw.title ?? undefined,
+    params: raw.params ?? known?.params ?? (video ? DEFAULT_VIDEO_PARAMS : DEFAULT_IMAGE_PARAMS),
     tags: known?.tags,
   }
+}
+
+/** KIE's own classification is the best capability signal on offer. */
+function fromTaskTypes(taskTypes: string[] | undefined): Capability[] {
+  const all = (taskTypes ?? []).map((t) => t.toLowerCase())
+  const capabilities: Capability[] = []
+  if (all.some((t) => t.includes('to video'))) capabilities.push('VIDEO_GENERATION')
+  if (all.some((t) => t === 'image to image')) capabilities.push('IMAGE_EDITING')
+  if (all.some((t) => t === 'text to image')) capabilities.push('IMAGE_GENERATION')
+  // An editor is still something that hands back an image, and the Create
+  // workspace lists by IMAGE_GENERATION — without this, every edit model
+  // vanishes from the picker.
+  if (!capabilities.length || (capabilities.includes('IMAGE_EDITING') && capabilities.length === 1)) {
+    capabilities.push('IMAGE_GENERATION')
+  }
+  return capabilities
+}
+
+/**
+ * "seedream/5-pro-image-to-image" → "Seedream 5 Pro Image To Image".
+ *
+ * The family prefix is kept rather than dropped: without it half the
+ * catalogue is called "5 Pro Image To Image" and the picker is useless.
+ */
+function prettyName(id: string): string {
+  return id
+    .split(/[/\-_]/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
 }
 
 function mapStatus(raw: string | undefined): JobStatus {

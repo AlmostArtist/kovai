@@ -238,18 +238,45 @@ export const TEMPLATES: Template[] = [
       'Set them onto your scene',
     ],
     providerId: 'kie',
-    // Preference order. Whichever of these the account actually has is used,
-    // so a newer release is picked up without editing this file.
-    models: ['bytedance/seedream-v5', 'bytedance/seedream-v4'],
+    // Preference order, resolved against the account's live catalogue.
+    //
+    // Image-to-image, not text-to-image: the whole job is to redraw a
+    // photograph that the user supplied, and a text-to-image model given a
+    // reference is a different and much weaker operation. The earlier version
+    // of this list named models KIE has never heard of, which is why every run
+    // came back "the model name you specified is not supported".
+    models: [
+      'seedream/5-pro-image-to-image',
+      'seedream/5-flash-image-to-image',
+      'seedream/5-lite-image-to-image',
+      'seedream/4.5-edit',
+      'bytedance/seedream-v4-edit',
+    ],
     styles: STYLES,
     backgrounds: BACKGROUNDS,
+    /*
+      Exactly the keys this model documents, and no others.
+
+      `image_size` was wrong — Seedream 5 image-to-image takes `quality`, and a
+      key a model does not recognise is quietly ignored rather than refused, so
+      the wrong one costs you a worse picture and tells you nothing.
+
+      PNG rather than JPEG matters more than it looks: the cutout keys on the
+      flat backdrop, and JPEG ringing around a high-contrast edge is exactly
+      the artefact that leaves a halo behind.
+    */
     params: {
-      imageSize: '2K',
       aspectRatio: '3:4',
-      negativePrompt: NEGATIVE,
+      quality: 'high',
+      outputFormat: 'png',
     },
     buildPrompt: ({ style }) =>
-      `${COMMON}\n\nSTYLE — render the portrait in this and nothing else:\n${style.direction}\n\nProduce one image: this person, in that style, centred on a flat ${MATTE_COLOUR} magenta background, with no shadow on the background and nothing touching the frame edge.`,
+      [
+        COMMON,
+        `STYLE — render the portrait in this and nothing else:\n${style.direction}`,
+        `AVOID: ${NEGATIVE}.`,
+        `Produce one image: this person, in that style, centred on a flat ${MATTE_COLOUR} magenta background, with no shadow on the background and nothing touching the frame edge.`,
+      ].join('\n\n'),
   },
 ]
 
