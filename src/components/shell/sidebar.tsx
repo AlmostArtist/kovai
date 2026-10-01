@@ -18,6 +18,7 @@ import {
   Sparkles,
   StickyNote,
   Telescope,
+  Wand2,
   Type,
   Workflow as WorkflowIcon,
 } from 'lucide-react'
@@ -38,6 +39,7 @@ const NAV: { kind: TabKind; label: string; icon: React.ComponentType<{ className
   { kind: 'home', label: 'Home', icon: Home },
   { kind: 'chat', label: 'Chat', icon: MessageSquare },
   { kind: 'create', label: 'Create', icon: Sparkles },
+  { kind: 'templates', label: 'Templates', icon: Wand2 },
   { kind: 'vision', label: 'Vision', icon: Layers },
   { kind: 'research', label: 'Research', icon: Telescope },
 ]

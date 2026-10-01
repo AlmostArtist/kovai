@@ -31,6 +31,7 @@ export type TabKind =
   | 'prompts'
   | 'notes'
   | 'agents'
+  | 'templates'
   | 'settings'
 
 export interface Tab {
@@ -83,6 +84,7 @@ export const TAB_TITLES: Record<TabKind, string> = {
   prompts: 'Prompts',
   notes: 'Notes',
   agents: 'Agents',
+  templates: 'Templates',
   settings: 'Settings',
 }
 
@@ -105,6 +107,7 @@ const SINGLETON_KINDS = new Set<TabKind>([
   'prompts',
   'notes',
   'agents',
+  'templates',
   'settings',
 ])
 

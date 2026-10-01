@@ -21,6 +21,7 @@ import {
   StickyNote,
   Telescope,
   Type,
+  Wand2,
   Workflow as WorkflowIcon,
   X,
 } from 'lucide-react'
@@ -51,6 +52,7 @@ const ICONS: Record<TabKind, React.ComponentType<{ className?: string }>> = {
   prompts: Type,
   notes: StickyNote,
   agents: Bot,
+  templates: Wand2,
   settings: Settings,
 }
 
@@ -163,6 +165,12 @@ export const TAB_THEMES: Record<TabKind, TabTheme> = {
     soft: 'color-mix(in srgb, var(--color-local) 14%, transparent)',
     border: 'var(--color-local)',
     label: 'Agents',
+  },
+  templates: {
+    color: 'var(--color-accent)',
+    soft: 'var(--color-accent-soft)',
+    border: 'var(--color-accent)',
+    label: 'Templates',
   },
   settings: {
     color: '#8b5cf6',

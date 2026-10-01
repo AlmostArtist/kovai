@@ -15,6 +15,7 @@ import { SkillsWorkspace } from './skills-workspace'
 import { PromptsWorkspace } from './prompts-workspace'
 import { SettingsWorkspace } from './settings-workspace'
 import { NotesWorkspace } from './notes-workspace'
+import { TemplatesWorkspace } from './templates-workspace'
 import { AgentsWorkspace } from './agents-workspace'
 import type { Tab } from '@/store/workspace'
 
@@ -56,6 +57,8 @@ export function WorkspaceSurface({ tab }: { tab: Tab }) {
       return <PromptsWorkspace tab={tab} />
     case 'notes':
       return <NotesWorkspace tab={tab} />
+    case 'templates':
+      return <TemplatesWorkspace tab={tab} />
     case 'agents':
       return <AgentsWorkspace tab={tab} />
     case 'settings':
