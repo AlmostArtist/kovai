@@ -23,7 +23,21 @@ const ENDPOINTS = {
   recordInfo: (taskId: string) => `/api/v1/jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`,
   models: '/api/v1/models',
   credits: '/api/v1/chat/credit',
+  uploadBase64: '/api/file-base64-upload',
 }
+
+/** Where KIE puts our uploads. Theirs are deleted after three days. */
+const UPLOAD_PATH = 'images/kovai'
+
+/**
+ * The file API lives on a different host from the rest of KIE.
+ *
+ * Their documentation gives this endpoint as `api.kie.ai/api/file-base64-upload`,
+ * which answers 404; the working host is the one below, confirmed against the
+ * live service. Overridable, so a correction on their side needs a variable
+ * rather than a release.
+ */
+const UPLOAD_BASE = (process.env.KIE_UPLOAD_BASE || 'https://kieai.redpandaai.co').replace(/\/$/, '')
 
 interface KieEnvelope<T> {
   code?: number
@@ -143,6 +157,71 @@ export class KieProvider implements ImageProvider {
     }
   }
 
+  /**
+   * Gives KIE a copy of anything it cannot fetch for itself.
+   *
+   * A reference image is passed to the provider as a URL, and the provider
+   * fetches it from its own servers. Anything served from this machine —
+   * `/api/files/...`, `localhost`, a LAN address — is reachable from here and
+   * from nowhere else, so KIE answers "Image fetch failed. Check access
+   * settings or use our File Upload API instead." It is right, and this is
+   * that File Upload API.
+   *
+   * Public https URLs are passed through untouched; there is nothing to gain
+   * by copying a CDN image into another CDN.
+   */
+  private async hostReferences(urls: string[]): Promise<string[]> {
+    return Promise.all(urls.map((url) => this.hostOne(url)))
+  }
+
+  private async hostOne(url: string): Promise<string> {
+    if (isPubliclyFetchable(url)) return url
+
+    const base64 = url.startsWith('data:') ? url : await this.readLocal(url)
+
+    const res = await fetchWithTimeout(
+      `${UPLOAD_BASE}${ENDPOINTS.uploadBase64}`,
+      {
+        method: 'POST',
+        headers: this.headers(),
+        body: JSON.stringify({ base64Data: base64, uploadPath: UPLOAD_PATH }),
+        timeoutMs: 60_000,
+      },
+      'kie',
+    )
+    if (!res.ok) throw errorFromResponse(res, await res.text().catch(() => ''), 'kie')
+
+    const body = (await res.json()) as KieEnvelope<{ downloadUrl?: string }>
+    const hosted = body.data?.downloadUrl
+    if (!hosted) {
+      throw new ProviderError({
+        code: 'PROVIDER_ERROR',
+        message: 'KIE could not take the reference image.',
+        providerId: 'kie',
+        detail: body.msg ?? body.message ?? JSON.stringify(body).slice(0, 300),
+      })
+    }
+    return hosted
+  }
+
+  /** Reads an image this server is hosting and returns it as a data URL. */
+  private async readLocal(url: string): Promise<string> {
+    const absolute = url.startsWith('/') ? `${selfOrigin()}${url}` : url
+    const res = await fetchWithTimeout(absolute, { timeoutMs: 20_000 }, 'kie').catch(() => null)
+    if (!res?.ok) {
+      throw new ProviderError({
+        code: 'BAD_REQUEST',
+        message: 'That reference image could not be read.',
+        providerId: 'kie',
+        detail: `Nothing was served at ${absolute}.`,
+        retryable: false,
+      })
+    }
+    const type = res.headers.get('content-type') ?? 'image/png'
+    const bytes = Buffer.from(await res.arrayBuffer())
+    return `data:${type};base64,${bytes.toString('base64')}`
+  }
+
   async generate(req: GenerationRequest) {
     this.assertConfigured()
 
@@ -155,7 +234,7 @@ export class KieProvider implements ImageProvider {
       input[INPUT_KEYS[key] ?? key] = value
     }
     if (req.referenceImages?.length) {
-      input.image_urls = req.referenceImages
+      input.image_urls = await this.hostReferences(req.referenceImages)
     }
 
     const res = await fetchWithTimeout(
@@ -353,3 +432,30 @@ function mapStatus(raw: string | undefined): JobStatus {
 }
 
 export const kieProvider = new KieProvider()
+
+/** Can KIE's servers fetch this themselves? */
+function isPubliclyFetchable(url: string): boolean {
+  if (url.startsWith('data:') || url.startsWith('/')) return false
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    return false
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false
+
+  const host = parsed.hostname.toLowerCase()
+  if (host === 'localhost' || host.endsWith('.local') || host === '::1') return false
+  // Dotted-quad private ranges, plus the loopback block.
+  if (/^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host)) return false
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return false
+  if (/^169\.254\./.test(host)) return false
+  return true
+}
+
+/** This server's own address, for reading back what it is hosting. */
+function selfOrigin(): string {
+  const configured = process.env.KOVAI_PUBLIC_URL || process.env.NEXT_PUBLIC_APP_URL
+  if (configured) return configured.replace(/\/$/, '')
+  return `http://127.0.0.1:${process.env.PORT || '3000'}`
+}

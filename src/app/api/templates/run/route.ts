@@ -11,6 +11,8 @@ interface Body {
   styleId: string
   /** The subject photograph, as a URL this server or the provider can read. */
   imageUrl: string
+  /** The written brief, for templates that take one. */
+  story?: string
   tabId?: string
   projectId?: string
 }
@@ -54,6 +56,16 @@ export async function POST(req: Request) {
       })
     }
 
+    const story = body.story?.trim() ?? ''
+    if (template.story && !story) {
+      throw new ProviderError({
+        code: 'BAD_REQUEST',
+        message: 'Write the story first.',
+        detail: 'This template builds the picture from what you describe.',
+        retryable: false,
+      })
+    }
+
     if (!body.imageUrl?.trim()) {
       throw new ProviderError({
         code: 'BAD_REQUEST',
@@ -72,7 +84,9 @@ export async function POST(req: Request) {
       projectId: body.projectId,
       request: {
         model,
-        prompt: template.buildPrompt({ style }),
+        // Capped rather than truncated silently at the provider: a brief long
+        // enough to matter is fine, a pasted novel is not a brief.
+        prompt: template.buildPrompt({ style, story: story.slice(0, 2000) }),
         params: template.params,
         referenceImages: [body.imageUrl.trim()],
       },

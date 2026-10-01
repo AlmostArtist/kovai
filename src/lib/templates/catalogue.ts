@@ -217,7 +217,156 @@ const BACKGROUNDS = [
   },
 ]
 
+
+/* ── Story Scene ──────────────────────────────────────────────
+
+  The second template, and the simpler one. No cutout, no compositing, no
+  flat backdrop: the model draws the whole picture, scene included, and what
+  comes back is what you get. Fewer moving parts is the point — the only
+  thing that has to go right is the face.
+*/
+
+/**
+ * Keeping the likeness while changing everything else.
+ *
+ * The hard part of this template is that the two instructions pull against
+ * each other: "make them a superhero mid-leap over a burning city" and "this
+ * must still look like the person in the photograph". Models resolve that
+ * tension by drifting towards a generic heroic face, so the identity clause
+ * is stated first, stated concretely, and stated as non-negotiable.
+ */
+const STORY_COMMON = `You are drawing a scene from a brief, starring the real person in the supplied photograph.
+
+IDENTITY — this overrides everything below:
+The character is this specific person. Keep the proportions of their face, the shape of the jaw, nose, brow and lips, the eye shape, spacing and colour, the hairline and hairstyle, the skin tone, and any facial hair, glasses or distinctive features. Their face must be clearly visible and unobstructed, and someone who knows them must recognise them at a glance. Do not beautify, slim, age, de-age, or substitute a more conventionally heroic face. Where the brief and the likeness conflict, the likeness wins.
+
+THE SCENE:
+Build the whole picture from the brief — the action, the setting, the wardrobe, the time of day, the weather, the mood. Put the person in it as the subject rather than a bystander: they should be the clear focal point, well lit, and large enough in frame that the face reads. A single figure unless the brief explicitly calls for more. Compose it like a frame from a film rather than a portrait with a backdrop pasted behind it — the light on the person must match the light in the scene, including its colour, direction and hardness.
+
+CRAFT:
+Deliberate composition with a clear focal point and depth. Consistent perspective. Anatomically sound hands and limbs. Readable silhouette. No text, letters, numbers, watermarks, signatures or logos anywhere in the image.`
+
+const STORY_NEGATIVE = [
+  'a different person, altered facial proportions, generic or idealised face',
+  'face obscured, turned away, cropped, in deep shadow or behind a mask',
+  'extra people, duplicated limbs, extra fingers, malformed hands',
+  'flat pasted-on subject whose lighting does not match the scene',
+  'text, watermark, signature, logo, caption, speech bubble',
+  'blurry, low resolution, jpeg artifacts, heavy grain, oversaturated',
+].join(', ')
+
+/**
+ * The same looks, aimed at a whole scene rather than a portrait.
+ *
+ * Separate from the portrait styles on purpose: "cel shading on the skin with
+ * a rim light along the jaw" is direction for a face, and says nothing useful
+ * about how to draw a burning city behind it.
+ */
+const STORY_STYLES: TemplateStyle[] = [
+  {
+    id: 'anime',
+    label: 'Anime',
+    hint: 'Cinematic anime key frame',
+    direction: `A key frame from a high-budget anime feature. Cel-shaded characters with clean varied linework over richly painted backgrounds — the contrast between flat character art and detailed scenery is the look. Dramatic perspective, speed lines or motion smears where there is movement, expressive lighting with visible god rays, lens flare and atmospheric haze. Saturated skies, hand-painted clouds, and the deep colour grading of a film rather than a television episode.`,
+  },
+  {
+    id: 'cartoon',
+    label: 'Cartoon',
+    hint: 'Western animated feature',
+    direction: `A frame from a modern Western animated feature. Bold confident outlines, simplified but purposeful shapes, flat colour with one shadow and one highlight tone. Exaggerated, readable poses with real weight and follow-through. Warm saturated palette, friendly stylisation, and staging that reads instantly at thumbnail size.`,
+  },
+  {
+    id: 'action',
+    label: 'Action film',
+    hint: 'Live-action blockbuster still',
+    direction: `A photographic still from a big-budget action film. Shot on anamorphic lenses — shallow depth of field, oval bokeh, horizontal flares. Hard directional key light with strong practical sources, deep contrast, teal-and-amber grade. Real atmosphere in the air: smoke, dust, embers, rain, backlit. Motion caught at a decisive moment with slight motion blur in the extremities. Photoreal skin and fabric, grounded physics, the gravity of a real camera on a real set.`,
+  },
+  {
+    id: 'comic',
+    label: 'Comic book',
+    hint: 'Inked and coloured panel',
+    direction: `A full-bleed comic book panel. Brush-inked linework with heavy weight variation and decisive spot blacks. Dynamic foreshortened perspective, heroic proportions, a low camera for scale. Flat colour over the ink with halftone texture in the shadows and bold complementary colour holds. The staging of a splash page — one unmistakable focal point, everything else driving the eye to it.`,
+  },
+  {
+    id: 'pixar',
+    label: '3D animated',
+    hint: 'Feature-film 3D render',
+    direction: `A frame from a modern 3D animated feature. Stylised but physically plausible: subsurface scattering in the skin, groomed hair, believable cloth simulation. Cinematic three-point lighting with warm key, cool bounce and a clean rim. Soft global illumination, gentle depth of field, polished surfacing. Appealing, warm, and rendered to the standard of a finished shot rather than a test.`,
+  },
+  {
+    id: 'noir',
+    label: 'Film noir',
+    hint: 'High-contrast black and white',
+    direction: `A black and white frame in the noir tradition. Hard single-source key light raking across the scene, venetian-blind shadows, deep inky blacks and specular highlights with almost nothing in between. Wet streets, rising steam, cigarette haze catching the light. Dutch angles and low cameras. Grainy, high-contrast monochrome stock with crushed shadows that still hold the face.`,
+  },
+  {
+    id: 'watercolour',
+    label: 'Watercolour',
+    hint: 'Loose painted illustration',
+    direction: `A watercolour illustration on cold-pressed paper. Transparent layered washes with visible granulation, blooms and hard-edged drying marks. Loose confident brushwork that leaves the paper breathing at the edges of the composition. A limited harmonious palette, wet-on-wet skies, and the darkest accents dropped in last. Hand-made throughout — no digital smoothness anywhere.`,
+  },
+  {
+    id: 'pixel',
+    label: 'Pixel art',
+    hint: '16-bit scene',
+    direction: `A detailed pixel art scene in a 16-bit console register. A deliberate pixel grid with every pixel placed on purpose. A tight indexed palette, dithered gradients in the sky and lighting, parallax-style depth with distinct foreground, midground and background layers. Clean readable character sprites with dark outlines, and the composed staging of a cutscene rather than a gameplay screenshot.`,
+  },
+]
+
 export const TEMPLATES: Template[] = [
+  {
+    id: 'story-scene',
+    name: 'Story Scene',
+    tagline: 'Put yourself in the story',
+    description:
+      'Upload a photo, choose a look, and write what happens. You are drawn into the scene you describe — the action, the setting, the light — with your own face.',
+    cover: lin(160, [
+      [0, '#0B1026'],
+      [0.3, '#1C2A5E'],
+      [0.6, '#C1440E'],
+      [0.85, '#F07B3F'],
+      [1, '#FFD460'],
+    ]),
+    inputHint: 'A clear, well-lit photo of your face, looking at the camera.',
+    steps: ['Describe the scene', 'Pick how it should be drawn', 'You are the subject of it'],
+    story: {
+      label: 'The story',
+      placeholder:
+        'A rooftop at dusk, rain coming down, cape snapping in the wind — standing over a city that has just been saved…',
+      hint: 'What happens, where, and how it should feel. Detail helps.',
+      examples: [
+        'A superhero landing in a crater on a rain-slick street, cape torn, city burning behind, lit by emergency lights',
+        'A lone astronaut on a red desert planet at sunrise, helmet under one arm, two moons in the sky',
+        'A 1940s detective in a smoky office, rain on the window, a single desk lamp, hat tipped low',
+        'A samurai standing in falling cherry blossom at dawn, hand resting on the hilt, mist across the valley',
+      ],
+    },
+    providerId: 'kie',
+    models: [
+      'seedream/5-pro-image-to-image',
+      'seedream/5-flash-image-to-image',
+      'seedream/5-lite-image-to-image',
+      'seedream/4.5-edit',
+      'bytedance/seedream-v4-edit',
+    ],
+    styles: STORY_STYLES,
+    // Not used — this template composes nothing — but the picker shows the
+    // first as the card's accent and the type requires a list.
+    backgrounds: BACKGROUNDS,
+    params: {
+      aspectRatio: '16:9',
+      quality: 'high',
+      outputFormat: 'png',
+    },
+    buildPrompt: ({ style, story }) =>
+      [
+        STORY_COMMON,
+        `THE BRIEF — this is the scene to draw:\n${(story ?? '').trim()}`,
+        `STYLE — render the whole image in this and nothing else:\n${style.direction}`,
+        `AVOID: ${STORY_NEGATIVE}.`,
+        'Produce one finished image of this scene, with the person from the photograph as its subject and their face clearly recognisable.',
+      ].join('\n\n'),
+  },
   {
     id: 'portrait-studio',
     name: 'Portrait Studio',

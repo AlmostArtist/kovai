@@ -2,9 +2,19 @@
 
 import { useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, ChevronRight, ImagePlus, Loader2, Sparkles, Wand2, X } from 'lucide-react'
+import {
+  ArrowLeft,
+  ChevronRight,
+  Download,
+  ImagePlus,
+  Loader2,
+  Maximize2,
+  Sparkles,
+  Wand2,
+  X,
+} from 'lucide-react'
 import { toast } from 'sonner'
-import { Button, EmptyState, Select, Spinner } from '@/components/ui'
+import { Button, EmptyState, Select, Spinner, Textarea } from '@/components/ui'
 import { WorkspaceHeader, WorkspaceScroll } from './workspace-surface'
 import { ErrorState } from './error-state'
 import { TemplateCanvas, DEFAULT_LAYER, type Layer } from './template-canvas'
@@ -160,6 +170,7 @@ function TemplateRunner({
   const [photo, setPhoto] = useState<{ url: string; preview: string } | null>(null)
   const [styleId, setStyleId] = useState(template.styles[0]?.id ?? '')
   const [backgroundId, setBackgroundId] = useState(template.backgrounds[0]?.id ?? '')
+  const [story, setStory] = useState('')
   const [jobId, setJobId] = useState<string | null>(null)
   const [layer, setLayer] = useState<Layer>(DEFAULT_LAYER)
   const [starting, setStarting] = useState(false)
@@ -216,6 +227,7 @@ function TemplateRunner({
         body: JSON.stringify({
           templateId: template.id,
           styleId,
+          story: story.trim() || undefined,
           imageUrl: photo.url,
           tabId: tab.id,
           projectId: activeProjectId ?? undefined,
@@ -313,6 +325,34 @@ function TemplateRunner({
               </Select>
             </Field>
 
+            {template.story && (
+              <Field
+                index={3}
+                label={template.story.label}
+                hint={template.story.hint}
+              >
+                <Textarea
+                  rows={5}
+                  value={story}
+                  onChange={(e) => setStory(e.target.value)}
+                  placeholder={template.story.placeholder}
+                />
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {template.story.examples.map((example) => (
+                    <button
+                      key={example}
+                      onClick={() => setStory(example)}
+                      title={example}
+                      className="max-w-full truncate rounded-full border border-line px-2.5 py-1 text-[11px] text-ink-muted transition-colors hover:border-line-strong hover:text-ink"
+                    >
+                      {example.split(',')[0]}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+            )}
+
+            {!template.story && (
             <Field index={3} label="Background" hint="Changeable afterwards, so this is not final">
               <div className="grid grid-cols-4 gap-2">
                 {template.backgrounds.map((entry) => (
@@ -333,6 +373,7 @@ function TemplateRunner({
                 ))}
               </div>
             </Field>
+            )}
 
             {error && <ErrorState error={error} onRetry={() => void run()} />}
 
@@ -340,7 +381,14 @@ function TemplateRunner({
               variant="primary"
               size="lg"
               className="w-full"
-              disabled={!photo?.url || !styleId || starting || running || blocked}
+              disabled={
+                !photo?.url ||
+                !styleId ||
+                (!!template.story && !story.trim()) ||
+                starting ||
+                running ||
+                blocked
+              }
               onClick={() => void run()}
             >
               {running ? (
@@ -368,14 +416,25 @@ function TemplateRunner({
         {/* The result. */}
         <div className="flex min-h-0 flex-1 flex-col bg-canvas p-4 md:p-6">
           {output ? (
-            <TemplateCanvas
-              subjectUrl={output}
-              background={background.spec}
-              layer={layer}
-              onLayerChange={setLayer}
-              onReplace={() => fileRef.current?.click()}
-              fileName={`${template.id}-${styleId}`}
-            />
+            /*
+              Two kinds of result. Portrait Studio hands back layers, because
+              the subject still has to be placed. Story Scene hands back a
+              finished frame — the model drew the whole picture, scene
+              included, so there is nothing left to assemble and a layer
+              editor would only invite you to take it apart.
+            */
+            template.story ? (
+              <FinishedImage url={output} fileName={`${template.id}-${styleId}`} />
+            ) : (
+              <TemplateCanvas
+                subjectUrl={output}
+                background={background.spec}
+                layer={layer}
+                onLayerChange={setLayer}
+                onReplace={() => fileRef.current?.click()}
+                fileName={`${template.id}-${styleId}`}
+              />
+            )
           ) : (
             <div className="flex flex-1 items-center justify-center">
               <EmptyState
@@ -383,13 +442,64 @@ function TemplateRunner({
                 title={running ? 'Working…' : 'Nothing made yet.'}
                 line={
                   running
-                    ? 'The portrait is being drawn. You can leave this tab — it will be here.'
-                    : 'Pick a photo, a style and a background, then generate.'
+                    ? 'It is being drawn. You can leave this tab — it will be here when it is done.'
+                    : template.story
+                      ? 'Add a photo, pick a style and write the story, then generate.'
+                      : 'Pick a photo, a style and a background, then generate.'
                 }
               />
             </div>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+/** A finished frame: nothing to assemble, so nothing to fiddle with. */
+function FinishedImage({ url, fileName }: { url: string; fileName: string }) {
+  const [saving, setSaving] = useState(false)
+
+  const save = async () => {
+    setSaving(true)
+    try {
+      // Pulled back through this origin, because a provider CDN will not let
+      // the page read the bytes and a plain <a download> to a cross-origin URL
+      // navigates instead of saving.
+      const res = await fetch(`/api/proxy/image?url=${encodeURIComponent(url)}`)
+      if (!res.ok) throw new Error('fetch failed')
+      const blob = await res.blob()
+      const href = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = href
+      link.download = `${fileName}.png`
+      link.click()
+      URL.revokeObjectURL(href)
+      toast.success('Saved.')
+    } catch {
+      toast.error('That image could not be saved.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col items-center gap-3">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={url}
+        alt=""
+        className="min-h-0 w-auto max-w-full flex-1 rounded-[14px] border border-line object-contain shadow-panel"
+      />
+      <div className="flex shrink-0 gap-2">
+        <Button variant="primary" size="md" onClick={() => void save()} disabled={saving}>
+          <Download className="h-[13px] w-[13px]" />
+          {saving ? 'Saving…' : 'Download'}
+        </Button>
+        <Button variant="secondary" size="md" onClick={() => window.open(url, '_blank')}>
+          <Maximize2 className="h-[13px] w-[13px]" />
+          Open full size
+        </Button>
       </div>
     </div>
   )

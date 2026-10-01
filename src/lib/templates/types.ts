@@ -77,6 +77,19 @@ export interface PublicTemplate {
   backgrounds: TemplateBackground[]
   /** What the subject photograph should be, in one line. */
   inputHint: string
+  /**
+   * The template takes a written brief as well as a photo.
+   *
+   * Present means the interface shows a prompt bar and `story` is required;
+   * absent means the template is entirely driven by its own prompt and the
+   * user's two or three choices.
+   */
+  story?: {
+    label: string
+    placeholder: string
+    hint: string
+    examples: string[]
+  }
 }
 
 /** The server-side definition. */
@@ -90,7 +103,7 @@ export interface Template extends Omit<PublicTemplate, 'styles'> {
   models: string[]
   providerId: 'kie'
   /** Builds the instruction sent to the model. */
-  buildPrompt(input: { style: TemplateStyle }): string
+  buildPrompt(input: { style: TemplateStyle; story?: string }): string
   /** Model parameters that are not the prompt. */
   params: Record<string, unknown>
 }
@@ -105,6 +118,7 @@ export function toPublic(template: Template): PublicTemplate {
     cover: template.cover,
     steps: template.steps,
     inputHint: template.inputHint,
+    story: template.story,
     backgrounds: template.backgrounds,
     styles: template.styles.map((s) => ({ id: s.id, label: s.label, hint: s.hint })),
   }
